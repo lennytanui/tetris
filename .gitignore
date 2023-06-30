@@ -2,3 +2,4 @@
 .tmp.driveupload
 build
 vendor/libs
+vendor/glfw3.dll
