@@ -96,7 +96,7 @@ if %Skip% == true (
 
 @REM --------- Start of GLFW Build ------------
 
-echo Building GLFW
+echo --------------------- building GLFW
 @REM copy ".\glfw_config.h" "..\glfw\src" >nul
 pushd ".\vendor\libs_src\glfw\src"
 
@@ -155,7 +155,7 @@ popd
 @REM ---------Start of FreeType Build ----------------
 
 @REM will require make sadly
-echo building FreeType
+echo --------------------- building FreeType
 pushd %FreeType_DIR%
 set FreeType_LIB_DIR= "..\..\libs\libfreetype.a"
 
@@ -209,6 +209,14 @@ popd
 
 
 @REM ---------Start of Soloud Build ----------------
+echo --------------------- building Soloud
+
+
+if not exist "./vendor/libs_src/soloud20200207/src/build" (
+    echo "Creating `.\build` directory"
+    mkdir "./vendor/libs_src/soloud20200207/src/build"
+)
+
 pushd "./vendor/libs_src/soloud20200207/src/build"
 
 if %ENV% == MSVC (
