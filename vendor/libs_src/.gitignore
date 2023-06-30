@@ -2,7 +2,10 @@ soloud20200207/demos
 soloud20200207/bin
 soloud20200207/scripts
 
-freetype-2.10.0/objs
+freetype-2.10.0/objs/*.obj
+freetype-2.10.0/objs/*.exe
+freetype-2.10.0/objs/*.lib
+freetype-2.10.0/objs/*.def
 glfw/CMake
 glfw/tests
 glfw/.github
