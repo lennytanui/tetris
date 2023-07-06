@@ -1,0 +1,1 @@
+call cd vendor && ..\build\platform.exe && cd ..

@@ -6,25 +6,27 @@
 #include "app.h"
 #include "app.cpp"
 
-static int window_width = 780;
-static int window_height = 490;
-
-void window_size_callback(GLFWwindow* window, int width, int height)
+static void window_size_callback(GLFWwindow* window, int width, int height)
 {
     printf("Alert : Window Resized \n");
     window_width = width;
     window_height = height;
 }
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if ((key == GLFW_KEY_W || key == GLFW_KEY_A || 
         key == GLFW_KEY_S || key == GLFW_KEY_D || key == GLFW_KEY_SPACE)&& action == GLFW_PRESS)
         move_tetromino(key);
 }
 
+
+static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    SetCursorPosition((float)xpos, (float)ypos);
+}
+
 int main(void) {
-    GLFWwindow *window = 0;
 
     if(!glfwInit()){
         printf("Failed to initialize GLFW \n");
@@ -53,6 +55,7 @@ int main(void) {
 
     glfwSetWindowSizeCallback(window, window_size_callback);
     glfwSetKeyCallback(window, key_callback);
+    glfwSetCursorPosCallback(window, cursor_position_callback);
 
     float delta_time = 1.0f;
     float start_time = 0.0f;
@@ -61,12 +64,15 @@ int main(void) {
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window)) {
         float start_time = glfwGetTime();
-
         /* Render here */
         glViewport(0, 0, window_width, window_height);
-        
+
         glClear(GL_COLOR_BUFFER_BIT);
-        glClearColor(0.0f, 0.0f, 0.0f, 255.0f);
+        glClearColor(1.0f, 0.0f, 0.0f, 255.0f);
+
+        // glEnable(GL_BLEND);
+        // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        // glBlendEquation(GL_FUNC_ADD);
 
         RenderRectangles(&app_state, delta_time);
         app_update(&app_state, delta_time);

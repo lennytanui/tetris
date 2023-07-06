@@ -5,6 +5,20 @@
 #include "app.h"
 #include "renderer.cpp"
 #include "shapes.cpp"
+#include "ui.cpp"
+
+/**
+    TODO: make it so the tiles do not move into other tiles when
+        moving right and left
+    check for new rows completed after a row everything shifts
+        down
+    create scoring system
+    add options for 4 different resolutions including
+        full screen
+
+
+    write the setup documentation
+*/
 
 #define TILE_COUNT_X 10
 #define TILE_COUNT_Y 20
@@ -63,6 +77,9 @@ static bool camera_can_shake = false;
 static float camera_shake_time_left = 0.0f;
 
 
+TextRendererManager trm = {};
+InputManager im = {};
+
 void camera_shake(v3 *position, float dt){
     if(camera_can_shake){
         global_shake_sin += CAMERA_SHAKE_SPEED * dt;
@@ -78,6 +95,11 @@ void camera_shake(v3 *position, float dt){
     }else{
         camera_shake_time_left -= dt;
     }
+}
+
+void SetCursorPosition(float x, float y){
+    im.cursorX = x;
+    im.cursorY = y;
 }
 
 void FindFullLines(){
@@ -297,6 +319,10 @@ void app_start(AppState *app_state){
     global_wav_reached_down.load("assets/ImpactIntoSand.wav");
     global_wav_phase.load("assets/Retro Block Hit.wav");
     global_wav_move.load("assets/Click.wav");
+
+    SetupTextRenderer(&trm);
+    Setup2dRendering(&trm);
+    im.window = window;
 }
 
 void app_update(AppState *app_state, float dt){
@@ -371,5 +397,12 @@ void app_update(AppState *app_state, float dt){
 
     camera_shake(&app_state->cam_pos, dt);
 
+
     draw(app_state);
+    DrawText(&trm, Create_String("SCORE : "), 1.0f, 
+        {TILE_SIZE * TILE_COUNT_X + 50.0f, window_height - DEFAULT_TEXT_PIXEL_HEIGHT - 20.0f}, 
+        {0.0f, 0.0f, 255.0f});
+    
+    Button(app_update, &im, &trm,  Create_String("Quit"), 
+        HMM_Vec2{400.0f, 200.0f}, {0.3f, 0.3f, 0.3f, 1.0f});
 }

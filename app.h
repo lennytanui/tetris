@@ -1,6 +1,10 @@
 #pragma once
 // #include <glm/glm.hpp>
 
+static int window_width = 780;
+static int window_height = 490;
+GLFWwindow *window = 0; // this is bad?
+
 #define CAMERA_NORMAL_POSITION {0.0f, 0.0f, 1.0f}
 #define MAX_TEX 16
 
@@ -103,3 +107,5 @@ struct AppState{
     Render_Square* render_squares[10000];
     unsigned int render_squares_count;
 };
+
+void SetCursorPosition(float xpos, float ypos);

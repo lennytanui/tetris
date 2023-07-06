@@ -178,6 +178,15 @@ void RenderRectangles(AppState *app_state, float dt) {
     { // TODO: camera movement
 
     }
+    
+    glUseProgram(app_state->basic_sp);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+    glDisable(GL_DEPTH_TEST);
+    glBindTexture(GL_TEXTURE_2D, 
+            app_state->textures[(app_state->tex_count - 1)]);
 
     HMM_Vec3 cam_front = {0.0f, 0.0f, -1.0f};
     HMM_Vec3 cam_up = {0.0f, 1.0f, 0.0f};
@@ -213,8 +222,10 @@ void RenderRectangles(AppState *app_state, float dt) {
              pos.x,           pos.y,            0.0f,     clr.r, clr.g, clr.b, clr.a,     0.0f, 0.0f,       b_clr.r, b_clr.g, b_clr.b, b_clr.a,  // bottom left
              pos.x,           pos.y + size.y,   0.0f,     clr.r, clr.g, clr.b, clr.a,     0.0f, 1.0f,       b_clr.r, b_clr.g, b_clr.b, b_clr.a  // top left
         };
-
+    
         glBindVertexArray(app_state->basic_vao);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 
+            app_state->basic_ebo);
         
         unsigned int b = 0;
         glGenBuffers(1, &b);
@@ -237,13 +248,16 @@ void RenderRectangles(AppState *app_state, float dt) {
         glEnableVertexAttribArray(2);
         glEnableVertexAttribArray(3);
 
-        glUseProgram(app_state->basic_sp);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
         glDeleteBuffers(1, &b);
     }
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_BLEND);
+    glUseProgram(0);
 
     for(int i = 0; i < app_state->render_squares_count; i++){
         Render_Square *render_square = app_state->render_squares[i];
