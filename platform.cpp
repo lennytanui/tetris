@@ -16,7 +16,9 @@ static void window_size_callback(GLFWwindow* window, int width, int height)
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if ((key == GLFW_KEY_W || key == GLFW_KEY_A || 
-        key == GLFW_KEY_S || key == GLFW_KEY_D || key == GLFW_KEY_SPACE)&& action == GLFW_PRESS)
+        key == GLFW_KEY_S || key == GLFW_KEY_D || key == GLFW_KEY_SPACE ||
+        key == GLFW_KEY_Z || key == GLFW_KEY_C || 
+        key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS)
         move_tetromino(key);
 }
 

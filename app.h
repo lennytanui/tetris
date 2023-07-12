@@ -1,5 +1,5 @@
 #pragma once
-// #include <glm/glm.hpp>
+#include "HandmadeMath.h"
 
 static int window_width = 780;
 static int window_height = 490;
@@ -37,6 +37,20 @@ struct v3{
         };
         
         float e[3];
+    };
+};
+
+
+struct v4{
+    union {
+        struct{
+            float x;
+            float y;
+            float z;
+            float w;  
+        };
+        
+        float e[4];
     };
 };
 
@@ -93,6 +107,9 @@ struct AppState{
     bool initialized;
     int basic_sp;
     int tex_count;
+    HMM_Mat4 view;
+    HMM_Mat4 proj;
+
     unsigned int basic_vao;
     // unsigned int basic_vbo;
     unsigned int basic_ebo;

@@ -73,13 +73,13 @@ void AddFontFace(TextRendererManager *trm, const char* ttfFilePath){
     FT_Set_Pixel_Sizes(newFace[0], 0, DEFAULT_TEXT_PIXEL_HEIGHT);
 }
 
-void SetupTextRenderer(TextRendererManager *trm){
+void SetupTextRenderer(TextRendererManager *trm, float proj_right, float proj_top){
     int error = FT_Init_FreeType( &trm->library );
     if(error){
         printf("ERROR: failed to initialize freetype\n");
     }
 
-    trm->projection_ortho = HMM_Orthographic_RH_ZO(0.0f, window_width, 0.0f, window_height, 0.0f, 1.0f);
+    trm->projection_ortho = HMM_Orthographic_RH_ZO(0.0f, proj_right, 0.0f, proj_top, 0.0f, 1.0f);
 
     trm->facesIndex = 0;
     trm->facesCount = 4;

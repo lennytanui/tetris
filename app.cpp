@@ -6,26 +6,37 @@
 #include "renderer.cpp"
 #include "shapes.cpp"
 #include "ui.cpp"
+#include <random>
 
 /**
-    TODO: make it so the tiles do not move into other tiles when
+    TODO: [x] make it so the tiles do not move into other tiles when
         moving right and left
-    check for new rows completed after a row everything shifts
+    [] check for new rows completed after a row everything shifts
         down
-    create scoring system
-    add options for 4 different resolutions including
+    [] fix first pieces bug when it reaches down
+    [x] create scoring system
+    [] add options for 4 different resolutions including
         full screen
-
-
-    write the setup documentation
+    [] game over screen
+        shows score, and options to restart or quit
+    [x] randomize pieces
+    [x] holding system
+    [] music volume slider
+    [] mute setting
+    [] leaderboard that stores the time and date of each play
+    [] Nicer Looking Buttons
+    [] smooth text rendering
+    [] write the setup documentation
+    [] optimizations
 */
 
 #define TILE_COUNT_X 10
-#define TILE_COUNT_Y 20
+#define TILE_COUNT_Y 18
 
 #define TILE_SIZE 30.0f
 #define BORDER_CLR {72.0f, 79.0f, 72.0f, 255.0f}
 #define TILE_CLR {16.0f, 31.0f, 17.0f, 255.0f}
+#define BACKGROUND_COLOR {50.0f, 50.0f, 50.0f, 255.0f}
 
 struct Tile{
     RGBA color;
@@ -43,19 +54,26 @@ static const Block_Info blocks_table[SHAPES_COUNT] = {
     SHAPE_zigzag1, SHAPE_zigzag2, SHAPE_t
 };
 
+AppState *global_app_state = 0;
+
 Tetris_Board global_tetris_board = {};
 
 Block_Info global_parent = SHAPE_zigzag2;
 Child_Block *current_blk = &global_parent.rotations[0];
 int parent_blk_index = 0;
 
-v2 curr_pos = {TILE_SIZE * 5, TILE_SIZE * 7};
 float move_amount = TILE_SIZE;
-v2 start_pos = {TILE_SIZE * 2, TILE_SIZE * 1};
+v2 start_pos = {TILE_SIZE * 7, TILE_SIZE * 1};
+v2 curr_pos = {start_pos.x + TILE_SIZE * 3, TILE_SIZE * TILE_COUNT_Y - 4};
+bool global_pause = false;
 int reached_down = 0;
-float score = 0;
-float score_per_line = 5;
+int global_score = 0;
+int score_per_line = 100;
 int global_rotation_index = 0;
+
+Block_Info held_blck_parent = {};
+int can_hold = true;
+v2 held_blck_pos = {TILE_SIZE * 1, start_pos.y + TILE_SIZE * TILE_COUNT_Y - TILE_SIZE * 8};
 
 SoLoud::Soloud gSoloud; // SoLoud engine
 SoLoud::Wav gWave;      // One wave file
@@ -63,19 +81,21 @@ SoLoud::Wav global_wav_reached_down;
 SoLoud::Wav global_wav_move;
 SoLoud::Wav global_wav_phase;
 
+std::random_device rd;
+std::uniform_int_distribution<int> dist(0, SHAPES_COUNT - 1);
+
 bool global_phase_down = false;
 
-#define TIME_BTW_MOVES 0.5f;
+float time_btw_moves = 0.5f;
 
 #define PHASE_TIME 0.01f;
-float time_to_next_move = TIME_BTW_MOVES;
+float time_to_next_move = time_btw_moves;
 
 static float global_shake_sin = 0.0f;
 #define CAMERA_SHAKE_SPEED 30
 #define CAMERA_SHAKE_DURATION 0.05f
 static bool camera_can_shake = false;
 static float camera_shake_time_left = 0.0f;
-
 
 TextRendererManager trm = {};
 InputManager im = {};
@@ -98,8 +118,21 @@ void camera_shake(v3 *position, float dt){
 }
 
 void SetCursorPosition(float x, float y){
-    im.cursorX = x;
-    im.cursorY = y;
+    
+    if(global_app_state){
+        HMM_Vec4 cursor_pos = {x, y, 0.0f, 1.0f};
+        cursor_pos.X /= window_width * 0.5f;
+        cursor_pos.Y /= window_height * 0.5f;
+        
+        cursor_pos.X -= 1.0f;
+        cursor_pos.Y -= 1.0f;
+        cursor_pos.Y *= -1;
+
+        cursor_pos = HMM_InvGeneralM4(global_app_state->proj) * cursor_pos;
+        
+        im.cursorX = cursor_pos.X;
+        im.cursorY = cursor_pos.Y;
+    }
 }
 
 void FindFullLines(){
@@ -122,10 +155,10 @@ void FindFullLines(){
         }
     }
 
-
+    int cleared_lines = 0;
     for(int i = 0; i < 4; i++){
         if(full_lines[i] != 0){
-            score += score_per_line;
+            cleared_lines++;
             printf("full line -- %i\n", full_lines[i]);
             int line = full_lines[i];
 
@@ -150,6 +183,42 @@ void FindFullLines(){
             }
         }
     }
+
+    if(cleared_lines == 4){
+        global_score += 800.0f;
+    } else if(cleared_lines >= 0 && cleared_lines < 4){
+        global_score += 100 * cleared_lines + cleared_lines * 15.0f; 
+    } else {
+        printf("--- STRANGE --- > strange number of cleared lines --- > %i\n", cleared_lines);
+    }
+
+    time_btw_moves -= 0.005f * cleared_lines;
+
+    full_lines[0] = 0;
+    full_lines[1] = 0;
+    full_lines[2] = 0;
+    full_lines[3] = 0;
+
+    index = 0;
+    for(int i = 0; i < TILE_COUNT_Y; i++){
+        int full_line = true;
+        for(int j = 0; j < TILE_COUNT_X; j++){
+            Tile *tile = &global_tetris_board.tiles[j][i];
+
+            if(!tile->taken){
+                full_line = false;
+                break;
+            }
+        }   
+
+        if(full_line){
+            full_lines[index++] = i + 1;
+        }
+    }
+
+    if(index > 0){
+        printf("--found a new line after new lines were solved, should run this function again\n");
+    }
 }
 
 v2 GetBoardCoord(v2 position){
@@ -161,6 +230,7 @@ v2 GetBoardCoord(v2 position){
     return result;
 }
 
+int used_blocks[SHAPES_COUNT] = {};
 Block_Info GetNewParentBlock(){
     int index = 0;
     Block_Info result = {};
@@ -168,8 +238,32 @@ Block_Info GetNewParentBlock(){
     if(parent_blk_index > 6){
         parent_blk_index = 0;
     }
-    result = blocks_table[parent_blk_index++];
+    // result = blocks_table[parent_blk_index++];
+    int rand_index = dist(rd);
+
+    // check if used_blcks array is empty
+    int used_block_array_has_empty = false;
+    for(int i = 0; i < SHAPES_COUNT; i++){
+        if(used_blocks[i] == 0){
+            used_block_array_has_empty = true;
+            break;
+        }
+    }
+
+    if(!used_block_array_has_empty){
+        for(int i = 0; i < SHAPES_COUNT; i++){
+            used_blocks[i] = 0;
+        }
+    }
+
+    while(used_blocks[rand_index] != 0){
+        rand_index = dist(rd);
+    }
+
+    used_blocks[rand_index]++;
     
+    result = blocks_table[rand_index];
+
     // check if out of bounds on the right
     for(int i = 0; i < 4; i++){
         v2 tile_coord = result.rotations[0].structure[i];
@@ -181,6 +275,28 @@ Block_Info GetNewParentBlock(){
                 ((curr_pos.x + tile_coord.x * TILE_SIZE) / 
                     (start_pos.x + TILE_SIZE * TILE_COUNT_X));
 
+        }
+    }
+
+    return result;
+}
+
+int ReachedObstacle(){
+    int result = 0;
+
+    for(int i = 0; i < 4; i++){
+        v2 structure = current_blk->structure[i];
+        v2 coord = GetBoardCoord({structure.x * TILE_SIZE + curr_pos.x, structure.y * TILE_SIZE + curr_pos.y - 1});
+
+        if(coord.y < 0){
+            result = true;
+            break;
+        }
+
+        Tile *tile = &global_tetris_board.tiles[(int)coord.x][(int)coord.y];
+        if(tile->taken){
+            result = true;
+            break;
         }
     }
 
@@ -213,6 +329,10 @@ void move_tetromino(int key){
         return;
     }
 
+    if(key != GLFW_KEY_ESCAPE && global_pause){
+        return;
+    }
+
     switch(key){
 
         // zoom down
@@ -230,16 +350,33 @@ void move_tetromino(int key){
         case GLFW_KEY_D:{
             if(!out_of_bounds_right){
                 curr_pos.x += move_amount;
-                gSoloud.play(global_wav_move);
             }
+
+            if(ReachedObstacle()){
+                curr_pos.x -= move_amount;
+            }else{
+                if(!out_of_bounds_right){
+                    gSoloud.play(global_wav_move);
+                }
+            }
+
             break;
         }
         
         case GLFW_KEY_A:{
+
             if(!out_of_bounds_left){
                 curr_pos.x -= move_amount;
-                gSoloud.play(global_wav_move);
             }
+
+            if(ReachedObstacle()){
+                curr_pos.x += move_amount;
+            }else{
+                if(!out_of_bounds_left){
+                    gSoloud.play(global_wav_move);
+                }
+            }
+            
             break;
         }
 
@@ -265,10 +402,44 @@ void move_tetromino(int key){
             }
             break;
         }
+
+        // hold piece key
+        case GLFW_KEY_C:{
+            printf("z has been clicked\n");
+
+            if(can_hold){
+                Block_Info temp_held_parent = global_parent;
+
+                if(held_blck_parent.rotations_count > 0){
+                    global_parent = held_blck_parent;
+                    held_blck_parent = temp_held_parent;
+                }else{
+                    // generate new block
+                    held_blck_parent = global_parent;
+                    global_parent = GetNewParentBlock();
+                }
+
+                current_blk = &global_parent.rotations[0];
+                global_rotation_index = 0;
+
+                can_hold = false;
+            }
+            break;
+        }
+
+        // pause
+        case GLFW_KEY_ESCAPE:{
+            global_pause = !global_pause;
+        }
     }
 }
 
 void draw(AppState *app_state){
+    // draw background
+    create_render_square(app_state,
+        {0.0f, 0.0f}, {(float)PROJ_RIGHT, (float)PROJ_TOP}, 
+        BACKGROUND_COLOR, BACKGROUND_COLOR);
+
     // draw the tiles
     v2 tile_pos = start_pos;
 
@@ -298,11 +469,68 @@ void draw(AppState *app_state){
                     global_parent.color, BORDER_CLR);
     }
 
+    // draw held block background
+    DrawText(&trm, Create_String("HOLD"), 0.5f, 
+        {held_blck_pos.x + TILE_SIZE * 1, held_blck_pos.y + TILE_SIZE * 5.5f}, 
+        {125.0f, 125.0f, 125.0f});
     Render_Square *render_square = create_render_square(app_state,
-            {500.0f, 100.0f}, {100.0f, 100.0f}, {0.0f, 255.0f, 0.0f, 255.0f}, {255.0f, 0.0f, 0.0f, 255.0f});
+        {held_blck_pos.x, held_blck_pos.y}, {TILE_SIZE * 5, TILE_SIZE * 5}, 
+            {70.0f, 70.0f, 70.0f, 255.0f}, {70.0f, 70.0f, 70.0f, 255.0f});
+    // draw held block 
+    if(held_blck_parent.rotations_count > 0){
+        for(int i = 0; i < 4; i++){
+            v2 tile_pos = {
+                held_blck_pos.x + TILE_SIZE + held_blck_parent.rotations[0].structure[i].x * TILE_SIZE,
+                held_blck_pos.y + TILE_SIZE + held_blck_parent.rotations[0].structure[i].y * TILE_SIZE
+            };
+
+            Render_Square *background = create_render_square(app_state,
+                    {tile_pos.x, tile_pos.y}, {TILE_SIZE, TILE_SIZE}, 
+                        held_blck_parent.color, BORDER_CLR);
+        }
+    }
+
+
+    // draw pause menu
+    if(global_pause){
+        v2 menu_position = {start_pos.x, start_pos.y + (TILE_SIZE * 2)};
+        v2 menu_size = {TILE_SIZE * TILE_COUNT_X, TILE_SIZE * 0.75f * TILE_COUNT_Y};
+        // draw menu background
+        create_render_square(app_state, menu_position, 
+            menu_size, 
+        {60.0f, 60.0f, 60.0f, 255.0f}, {60.0f, 60.0f, 60.0f, 255.0f});
+
+        DrawText(&trm, Create_String("PAUSE"), 1.2f, 
+        {menu_position.x + TILE_SIZE * 3, 
+            menu_position.y + menu_size.y - TILE_SIZE * 3.0f}, 
+        {125.0f, 125.0f, 125.0f});
+        
+        if(Button(AppQuit, &im, &trm,  Create_String("Quit"), 
+            HMM_Vec2{menu_position.x + TILE_SIZE * 3, 
+            menu_position.y + menu_size.y - TILE_SIZE * 7.0f}, 
+                {0.3f, 0.3f, 0.3f, 1.0f})){
+            // quit
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+        }
+
+        if(Button(draw, &im, &trm,  Create_String("Continue"), 
+            HMM_Vec2{menu_position.x + TILE_SIZE * 3, 
+            menu_position.y + menu_size.y - TILE_SIZE * 9.0f}, 
+                {0.3f, 0.3f, 0.3f, 1.0f})){
+            global_pause = false;
+        }
+        
+        if(Button(draw, &im, &trm,  Create_String("Settings"), 
+            HMM_Vec2{menu_position.x + TILE_SIZE * 3, 
+            menu_position.y + menu_size.y - TILE_SIZE * 11.0f}, 
+                {0.3f, 0.3f, 0.3f, 1.0f})){
+            global_pause = false;
+        }
+    }
 }
 
 void app_start(AppState *app_state){
+    global_app_state = app_state;
     for(int x = 0; x < TILE_COUNT_X; x++){
         for(int y = 0; y < TILE_COUNT_Y; y++){
             global_tetris_board.tiles[x][y].color = TILE_CLR;
@@ -320,7 +548,7 @@ void app_start(AppState *app_state){
     global_wav_phase.load("assets/Retro Block Hit.wav");
     global_wav_move.load("assets/Click.wav");
 
-    SetupTextRenderer(&trm);
+    SetupTextRenderer(&trm, PROJ_RIGHT, PROJ_TOP);
     Setup2dRendering(&trm);
     im.window = window;
 }
@@ -349,8 +577,12 @@ void app_update(AppState *app_state, float dt){
         global_rotation_index = 0;
 
         // move to the top
-        curr_pos.y = start_pos.y + TILE_SIZE * (TILE_COUNT_Y - 4);
+        curr_pos.y = start_pos.y + TILE_SIZE * (TILE_COUNT_Y - 2);
         reached_down = 0;
+
+        if(can_hold == false) {
+            can_hold = true;    
+        }
 
         FindFullLines();
 
@@ -368,7 +600,7 @@ void app_update(AppState *app_state, float dt){
         curr_pos.y -= move_amount;
 
         if(!global_phase_down){
-            time_to_next_move = TIME_BTW_MOVES;
+            time_to_next_move = time_btw_moves;
         }else{
             gSoloud.play(global_wav_phase);
             time_to_next_move = PHASE_TIME;
@@ -376,33 +608,19 @@ void app_update(AppState *app_state, float dt){
 
     }
 
-    time_to_next_move -= dt;
+    if(!global_pause){
+        time_to_next_move -= dt;
+    }
 
     // compute if reached down
-    for(int i = 0; i < 4; i++){
-        v2 structure = current_blk->structure[i];
-        v2 coord = GetBoardCoord({structure.x * TILE_SIZE + curr_pos.x, structure.y * TILE_SIZE + curr_pos.y - 1});
-
-        if(coord.y < 0){
-            reached_down = true;
-            break;
-        }
-
-        Tile *tile = &global_tetris_board.tiles[(int)coord.x][(int)coord.y];
-        if(tile->taken){
-            reached_down = true;
-            break;
-        }
-    }
+    reached_down = ReachedObstacle();
 
     camera_shake(&app_state->cam_pos, dt);
 
-
     draw(app_state);
-    DrawText(&trm, Create_String("SCORE : "), 1.0f, 
-        {TILE_SIZE * TILE_COUNT_X + 50.0f, window_height - DEFAULT_TEXT_PIXEL_HEIGHT - 20.0f}, 
-        {0.0f, 0.0f, 255.0f});
-    
-    Button(app_update, &im, &trm,  Create_String("Quit"), 
-        HMM_Vec2{400.0f, 200.0f}, {0.3f, 0.3f, 0.3f, 1.0f});
+    String score_str = Create_String("SCORE : ");
+    AddToString(&score_str, global_score);
+    DrawText(&trm, score_str, 1.0f, 
+        {start_pos.x + (TILE_SIZE / 2.0f) * TILE_COUNT_X - TILE_SIZE * 2, PROJ_TOP - TILE_SIZE * 2}, 
+        {200.0f, 200.0f, 200.0f});
 }

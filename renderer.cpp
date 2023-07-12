@@ -5,6 +5,9 @@
 #include "stb_image.h"
 #include "HandmadeMath.h"
 
+#define PROJ_RIGHT 1060.0f
+#define PROJ_TOP 649.0f
+
 void ReadFile(char *file_name, char *buffer) {
     char *result = 0;
 
@@ -31,8 +34,6 @@ void draw_render_squares(AppState *app_state){
 void RenderRectangles(AppState *app_state, float dt) {
     
     HMM_Vec3 cam_pos = {app_state->cam_pos.x, app_state->cam_pos.y, app_state->cam_pos.z}; 
-    static HMM_Mat4 view;
-    static HMM_Mat4 proj;
 
     if(!app_state->initialized){
 
@@ -170,7 +171,7 @@ void RenderRectangles(AppState *app_state, float dt) {
 
         stbi_image_free(data);
 
-        proj = HMM_Orthographic_LH_NO(0.0f, 1060.0f, 0.0f, 649.0f, 0.0f, 1.0f);
+        app_state->proj = HMM_Orthographic_LH_NO(0.0f, PROJ_RIGHT, 0.0f, PROJ_TOP, 0.0f, 1.0f);
 
         app_state->initialized = true;
     }
@@ -190,13 +191,13 @@ void RenderRectangles(AppState *app_state, float dt) {
 
     HMM_Vec3 cam_front = {0.0f, 0.0f, -1.0f};
     HMM_Vec3 cam_up = {0.0f, 1.0f, 0.0f};
-    view = HMM_LookAt_LH(cam_front + HMM_Vec3{cam_pos.X, cam_pos.Y, 0.0f},{cam_pos.X, cam_pos.Y, 20.0f}, cam_up);
+    app_state->view = HMM_LookAt_LH(cam_front + HMM_Vec3{cam_pos.X, cam_pos.Y, 0.0f},{cam_pos.X, cam_pos.Y, 20.0f}, cam_up);
 
     unsigned int projection_loc = glGetUniformLocation(app_state->basic_sp, "u_projection");
-    glUniformMatrix4fv(projection_loc, 1, GL_FALSE, &proj[0][0]);
+    glUniformMatrix4fv(projection_loc, 1, GL_FALSE, &app_state->proj[0][0]);
     
     unsigned int view_loc = glGetUniformLocation(app_state->basic_sp, "u_view");
-    glUniformMatrix4fv(view_loc, 1, GL_FALSE, &view[0][0]);
+    glUniformMatrix4fv(view_loc, 1, GL_FALSE, &app_state->view[0][0]);
 
     for(int i = 0; i < app_state->render_squares_count; i++){
         Render_Square *render_square = app_state->render_squares[i];

@@ -82,6 +82,12 @@ void AddToString(struct String *string, float val){
     AddCharsToString(string, tempChar);
 }
 
+void AddToString(struct String *string, int val){
+    char tempChar[8] = {};
+    snprintf(tempChar, 8, "%i", val);
+    AddCharsToString(string, tempChar);
+}
+
 
 #define STRING_H
 #endif

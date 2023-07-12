@@ -243,7 +243,7 @@ unsigned int Button(void *id, InputManager *im, TextRendererManager *trm, String
     int state = glfwGetMouseButton(im->window, GLFW_MOUSE_BUTTON_LEFT);
     
     if(im->cursorX >= pos.X && im->cursorX <= pos.X + width 
-        && (window_height - im->cursorY) >= pos.Y && (window_height - im->cursorY) <= pos.Y + height){
+        && (im->cursorY) >= pos.Y && (im->cursorY) <= pos.Y + height){
         if(!im->active_ui){
             SetHot(im, id);
     
