@@ -244,7 +244,7 @@ if %ENV% == GNU (
 
 if %ENV% == MSVC (
     @REM Compiling with MSVC
-    cl ..\platform.cpp ..\glad.c -Z7 -I../vendor/include -link -LIBPATH:..\vendor\libs^
+    cl ..\platform.cpp ..\glad.c -Z7  -EHsc -I../vendor/include -link -LIBPATH:..\vendor\libs^
     soloud.lib freetype.lib libglfw3.a Gdi32.lib User32.lib Shell32.lib Opengl32.lib
 )
 

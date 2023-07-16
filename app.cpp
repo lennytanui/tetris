@@ -6,18 +6,22 @@
 #include "renderer.cpp"
 #include "shapes.cpp"
 #include "ui.cpp"
+#include "save.cpp"
+#include "str.c"
+
 #include <random>
+#include <fstream>
 
 /**
     TODO: [x] make it so the tiles do not move into other tiles when
         moving right and left
-    [] check for new rows completed after a row everything shifts
+    [X] check for new rows completed after a row everything shifts
         down
     [] fix first pieces bug when it reaches down
     [x] create scoring system
     [] add options for 4 different resolutions including
         full screen
-    [] game over screen
+    [X] game over screen
         shows score, and options to restart or quit
     [x] randomize pieces
     [x] holding system
@@ -54,6 +58,28 @@ static const Block_Info blocks_table[SHAPES_COUNT] = {
     SHAPE_zigzag1, SHAPE_zigzag2, SHAPE_t
 };
 
+#pragma pack(push, 1)
+struct Score{
+    int id;
+    float score;
+    float time;
+    uint8_t age;
+};
+
+#pragma pack(pop)
+
+struct Score_1{
+    int id;
+    float score;
+    float time;
+    uint8_t age;
+};
+
+struct ScoreDataManager{
+    int scores_count;
+    Score *scores;
+};
+
 AppState *global_app_state = 0;
 
 Tetris_Board global_tetris_board = {};
@@ -66,6 +92,10 @@ float move_amount = TILE_SIZE;
 v2 start_pos = {TILE_SIZE * 7, TILE_SIZE * 1};
 v2 curr_pos = {start_pos.x + TILE_SIZE * 3, TILE_SIZE * TILE_COUNT_Y - 4};
 bool global_pause = false;
+bool global_game_over = false;
+bool global_show_leaderboard = false;
+bool global_show_menuboard = false;
+ScoreDataManager global_sdm = {};
 int reached_down = 0;
 int global_score = 0;
 int score_per_line = 100;
@@ -218,6 +248,7 @@ void FindFullLines(){
 
     if(index > 0){
         printf("--found a new line after new lines were solved, should run this function again\n");
+        FindFullLines();
     }
 }
 
@@ -333,6 +364,10 @@ void move_tetromino(int key){
         return;
     }
 
+    if(global_game_over){
+        return;
+    }
+
     switch(key){
 
         // zoom down
@@ -429,9 +464,43 @@ void move_tetromino(int key){
 
         // pause
         case GLFW_KEY_ESCAPE:{
-            global_pause = !global_pause;
+            if(!global_show_menuboard){
+                global_pause = !global_pause;
+            }
         }
     }
+}
+
+// could use a c++ data structure
+void SaveScore(int score){
+    DataElement de = {};
+    de.score = score;
+    de.time = Create_String("time");
+    de.date = Create_String("date");
+    
+    AddToDataFile(Create_String("data.dat"), de);
+
+    // sort the leader board
+    ReadDataResult rdr = ReadDataFile(Create_String("data.dat"));
+
+    int swapped = 1;
+    while(swapped){
+        swapped = 0;
+        for(int i = 0; i < rdr.data_len - 1; i++){
+            DataElement de_0 = rdr.data[i];
+            DataElement de_1 = rdr.data[i + 1];
+
+            if(de_1.score > de_0.score){
+                rdr.data[i] = de_1;
+                rdr.data[i + 1] = de_0;
+                swapped = 1;
+            }
+        }
+    }
+
+    WriteDataFile(Create_String("data.dat"), rdr.data, rdr.data_len, 1);
+
+    free(rdr.data);
 }
 
 void draw(AppState *app_state){
@@ -458,15 +527,17 @@ void draw(AppState *app_state){
     }    
 
     // draw current block
-    for(int i = 0; i < 4; i++){
-        v2 tile_pos = {
-            curr_pos.x + current_blk->structure[i].x * TILE_SIZE,
-            curr_pos.y + current_blk->structure[i].y * TILE_SIZE
-        };
+    if(!global_show_menuboard || !global_show_leaderboard){
+        for(int i = 0; i < 4; i++){
+            v2 tile_pos = {
+                curr_pos.x + current_blk->structure[i].x * TILE_SIZE,
+                curr_pos.y + current_blk->structure[i].y * TILE_SIZE
+            };
 
-        Render_Square *background = create_render_square(app_state,
-                {tile_pos.x, tile_pos.y}, {TILE_SIZE, TILE_SIZE}, 
-                    global_parent.color, BORDER_CLR);
+            Render_Square *background = create_render_square(app_state,
+                    {tile_pos.x, tile_pos.y}, {TILE_SIZE, TILE_SIZE}, 
+                        global_parent.color, BORDER_CLR);
+        }
     }
 
     // draw held block background
@@ -476,6 +547,7 @@ void draw(AppState *app_state){
     Render_Square *render_square = create_render_square(app_state,
         {held_blck_pos.x, held_blck_pos.y}, {TILE_SIZE * 5, TILE_SIZE * 5}, 
             {70.0f, 70.0f, 70.0f, 255.0f}, {70.0f, 70.0f, 70.0f, 255.0f});
+
     // draw held block 
     if(held_blck_parent.rotations_count > 0){
         for(int i = 0; i < 4; i++){
@@ -491,10 +563,11 @@ void draw(AppState *app_state){
     }
 
 
+    v2 menu_position = {start_pos.x, start_pos.y + (TILE_SIZE * 2)};
+    v2 menu_size = {TILE_SIZE * TILE_COUNT_X, TILE_SIZE * 0.75f * TILE_COUNT_Y};
+
     // draw pause menu
     if(global_pause){
-        v2 menu_position = {start_pos.x, start_pos.y + (TILE_SIZE * 2)};
-        v2 menu_size = {TILE_SIZE * TILE_COUNT_X, TILE_SIZE * 0.75f * TILE_COUNT_Y};
         // draw menu background
         create_render_square(app_state, menu_position, 
             menu_size, 
@@ -527,10 +600,145 @@ void draw(AppState *app_state){
             global_pause = false;
         }
     }
+
+    // draw game over
+    if(global_game_over && !global_show_menuboard && !global_show_leaderboard){
+        create_render_square(app_state, menu_position, 
+            menu_size, 
+        {60.0f, 60.0f, 60.0f, 255.0f}, {60.0f, 60.0f, 60.0f, 255.0f});
+
+        DrawText(&trm, Create_String("GAME OVER!"), 1.2f, 
+        {menu_position.x + TILE_SIZE * 1, 
+            menu_position.y + menu_size.y - TILE_SIZE * 3.0f}, 
+        {125.0f, 125.0f, 125.0f});
+        
+        String score_string = Create_String("SCORE - ");
+        AddToString(&score_string, global_score);
+        DrawText(&trm, score_string, 0.9f, 
+        {menu_position.x + TILE_SIZE * 1, 
+            menu_position.y + menu_size.y - TILE_SIZE * 5.0f}, 
+        {125.0f, 125.0f, 125.0f});
+
+        if(Button(AppQuit, &im, &trm,  Create_String("Menu"), 
+            HMM_Vec2{menu_position.x + TILE_SIZE * 1, 
+            menu_position.y + menu_size.y - TILE_SIZE * 7.0f}, 
+                {0.3f, 0.3f, 0.3f, 1.0f})){
+            global_show_menuboard = true;
+        }
+
+
+        if(Button(draw, &im, &trm,  Create_String("Restart"), 
+            HMM_Vec2{menu_position.x + TILE_SIZE * 1, 
+            menu_position.y + menu_size.y - TILE_SIZE * 9.0f}, 
+                {0.3f, 0.3f, 0.3f, 1.0f})){
+            global_pause = false;
+
+            // clear the grid
+            for(int x = 0; x < TILE_COUNT_X; x++){
+                for(int y = 0; y < TILE_COUNT_Y; y++){
+                    global_tetris_board.tiles[x][y].color = TILE_CLR;
+                    global_tetris_board.tiles[x][y].border_clr = BORDER_CLR;
+                    global_tetris_board.tiles[x][y].taken = false;
+                }
+            }
+
+            held_blck_parent = {};
+            global_game_over = false;
+        }
+    }
+
+    // show leader board    
+    if(global_show_leaderboard){
+        create_render_square(app_state, menu_position, 
+            menu_size, 
+        {60.0f, 60.0f, 60.0f, 255.0f}, {60.0f, 60.0f, 60.0f, 255.0f});
+
+        DrawText(&trm, Create_String("LEADERBOARD"), 0.9f, 
+        {menu_position.x + TILE_SIZE * 1, 
+            menu_position.y + menu_size.y - TILE_SIZE * 3.0f}, 
+        {125.0f, 125.0f, 125.0f});
+
+        
+        ReadDataResult rdr = ReadDataFile(Create_String("data.dat"));
+        float y_pos = 5.0f;
+        for(int i = 0; i < rdr.data_len; i++){
+            String score_string = Create_String("Score : ");
+            AddToString(&score_string, rdr.data[i].score);
+            DrawText(&trm, score_string, 0.9f, 
+            {menu_position.x + TILE_SIZE * 1, 
+                menu_position.y + menu_size.y - TILE_SIZE * y_pos}, 
+            {125.0f, 125.0f, 125.0f});
+
+            y_pos += 2;
+        }
+
+        if(Button(&global_show_leaderboard, &im, &trm,  Create_String("Back"), 
+            HMM_Vec2{menu_position.x + TILE_SIZE * 1, 
+            menu_position.y + menu_size.y - TILE_SIZE * y_pos}, 
+                {0.3f, 0.3f, 0.3f, 1.0f})){
+            
+            global_show_leaderboard = false;
+            global_show_menuboard = true;
+        }
+    }
+
+    // show menu board
+    if(global_show_menuboard){
+        create_render_square(app_state, menu_position, 
+            menu_size, 
+        {60.0f, 60.0f, 60.0f, 255.0f}, {60.0f, 60.0f, 60.0f, 255.0f});
+
+        DrawText(&trm, Create_String("MENU"), 0.9f, 
+        {menu_position.x + TILE_SIZE * 1, 
+            menu_position.y + menu_size.y - TILE_SIZE * 3.0f}, 
+        {125.0f, 125.0f, 125.0f});
+
+        float y_pos = 5.0f;
+        if(Button(&global_pause, &im, &trm,  Create_String("Play"), 
+            HMM_Vec2{menu_position.x + TILE_SIZE * 1, 
+            menu_position.y + menu_size.y - TILE_SIZE * y_pos}, 
+                {0.3f, 0.3f, 0.3f, 1.0f})){
+            
+            global_pause = false;
+
+            // clear the grid
+            for(int x = 0; x < TILE_COUNT_X; x++){
+                for(int y = 0; y < TILE_COUNT_Y; y++){
+                    global_tetris_board.tiles[x][y].color = TILE_CLR;
+                    global_tetris_board.tiles[x][y].border_clr = BORDER_CLR;
+                    global_tetris_board.tiles[x][y].taken = false;
+                }
+            }
+
+            held_blck_parent = {};
+            global_game_over = false;
+
+            global_show_menuboard = false;
+        }
+
+        if(Button(&global_show_leaderboard, &im, &trm,  Create_String("Leaderboard"), 
+            HMM_Vec2{menu_position.x + TILE_SIZE * 1, 
+            menu_position.y + menu_size.y - TILE_SIZE * (y_pos + 2)}, 
+                {0.3f, 0.3f, 0.3f, 1.0f})){
+                global_show_leaderboard = true;
+                global_show_menuboard = false;
+        }
+        
+        if(Button(&AppQuit, &im, &trm,  Create_String("Quit"), 
+            HMM_Vec2{menu_position.x + TILE_SIZE * 1, 
+            menu_position.y + menu_size.y - TILE_SIZE * (y_pos + 4)}, 
+                {0.3f, 0.3f, 0.3f, 1.0f})){
+
+            // quit
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+        }
+    }
 }
 
 void app_start(AppState *app_state){
     global_app_state = app_state;
+    global_show_menuboard = true;
+    ReadDataFile(Create_String("data.dat"));
     for(int x = 0; x < TILE_COUNT_X; x++){
         for(int y = 0; y < TILE_COUNT_Y; y++){
             global_tetris_board.tiles[x][y].color = TILE_CLR;
@@ -576,9 +784,19 @@ void app_update(AppState *app_state, float dt){
         current_blk = &global_parent.rotations[0];
         global_rotation_index = 0;
 
+
         // move to the top
         curr_pos.y = start_pos.y + TILE_SIZE * (TILE_COUNT_Y - 2);
         reached_down = 0;
+
+        // check if spawned on top of a piece
+        if(ReachedObstacle()){
+            if(global_score > 0){
+                SaveScore(global_score);
+                global_score = 0;
+            }
+            global_game_over = true;
+        }
 
         if(can_hold == false) {
             can_hold = true;    
@@ -596,7 +814,7 @@ void app_update(AppState *app_state, float dt){
     }
 
     // move down
-    if(time_to_next_move <= 0){
+    if(time_to_next_move <= 0 && !global_game_over && !global_pause && !global_show_menuboard && !global_show_leaderboard){
         curr_pos.y -= move_amount;
 
         if(!global_phase_down){
@@ -608,12 +826,16 @@ void app_update(AppState *app_state, float dt){
 
     }
 
-    if(!global_pause){
+    if(!global_pause || !global_game_over || !global_show_menuboard ||  !global_show_leaderboard){
         time_to_next_move -= dt;
     }
 
     // compute if reached down
-    reached_down = ReachedObstacle();
+    if(global_game_over || global_show_menuboard){
+        reached_down = 0;
+    }else{
+        reached_down = ReachedObstacle();
+    }
 
     camera_shake(&app_state->cam_pos, dt);
 

@@ -1,5 +1,5 @@
 #
-# FreeType 2 Visual C++ on Win32
+# FreeType 2 configuration rules for Win32 + GCC
 #
 
 
@@ -12,14 +12,17 @@
 # indicate that you have read the license and understand and accept it
 # fully.
 
-# definitions of the export list
+# default definitions of the export list
 #
 EXPORTS_LIST      = $(OBJ_DIR)/freetype.def
-EXPORTS_OPTIONS   = /DEF:$(EXPORTS_LIST)
+EXPORTS_OPTIONS   = $(EXPORTS_LIST)
 APINAMES_OPTIONS := -dfreetype.dll -w
 
+# include Win32-specific definitions
 include $(TOP_DIR)/builds/windows/win32-def.mk
-include $(TOP_DIR)/builds/compiler/visualc.mk
+
+# include gcc-specific definitions
+include $(TOP_DIR)/builds/compiler/gcc.mk
 
 # include linking instructions
 include $(TOP_DIR)/builds/link_dos.mk
