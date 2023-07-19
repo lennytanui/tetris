@@ -230,6 +230,11 @@ if %ENV% == MSVC (
     
     copy ".\soloud.lib" "..\..\..\..\libs\soloud.lib"
 )
+
+if %ENV% == GNU (
+    @REM g++ 
+)
+
 :skip_SOLOUD_build
 popd
 @REM ---------End of Soloud Build ----------------

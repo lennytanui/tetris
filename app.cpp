@@ -749,7 +749,7 @@ void app_start(AppState *app_state){
     app_state->cam_pos = CAMERA_NORMAL_POSITION;
     gSoloud.init(); // Initialize SoLoud
     gWave.load("assets/Future-Technology.wav"); // Load a wave
-    gSoloud.play(gWave); // Play the wave
+    // gSoloud.play(gWave); // Play the wave
     gWave.setLooping(1);
 
     global_wav_reached_down.load("assets/ImpactIntoSand.wav");
