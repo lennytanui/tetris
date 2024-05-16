@@ -18,8 +18,14 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     if ((key == GLFW_KEY_W || key == GLFW_KEY_A || 
         key == GLFW_KEY_S || key == GLFW_KEY_D || key == GLFW_KEY_SPACE ||
         key == GLFW_KEY_Z || key == GLFW_KEY_C || 
-        key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS)
-        move_tetromino(key);
+        key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS){           
+            move_tetromino(key);
+    }else if ((key == GLFW_KEY_UP || key == GLFW_KEY_LEFT || 
+        key == GLFW_KEY_DOWN || key == GLFW_KEY_RIGHT || key == GLFW_KEY_SPACE ||
+        key == GLFW_KEY_Z || key == GLFW_KEY_C || 
+        key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS){           
+            move_tetromino(key);
+    }
 }
 
 

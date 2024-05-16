@@ -90,7 +90,8 @@ int parent_blk_index = 0;
 
 float move_amount = TILE_SIZE;
 v2 start_pos = {TILE_SIZE * 7, TILE_SIZE * 1};
-v2 curr_pos = {start_pos.x + TILE_SIZE * 3, TILE_SIZE * TILE_COUNT_Y - 4};
+// start_pos.y + TILE_SIZE * (TILE_COUNT_Y - 2)
+v2 curr_pos = {start_pos.x + TILE_SIZE * 3, start_pos.y + TILE_SIZE * (TILE_COUNT_Y - 2)};
 bool global_pause = false;
 bool global_game_over = false;
 bool global_show_leaderboard = false;
@@ -166,8 +167,8 @@ void SetCursorPosition(float x, float y){
 }
 
 void FindFullLines(){
-    int full_lines[4] = {};
-    int index = 0;
+    int full_lines[4] = {-1, -1, -1, -1};
+    int full_lines_count = 0;
 
     for(int i = 0; i < TILE_COUNT_Y; i++){
         int full_line = true;
@@ -181,13 +182,14 @@ void FindFullLines(){
         }   
 
         if(full_line){
-            full_lines[index++] = i + 1;
+            full_lines[full_lines_count++] = i + 1;
         }
     }
 
+    // clear the lines
     int cleared_lines = 0;
     for(int i = 0; i < 4; i++){
-        if(full_lines[i] != 0){
+        if(full_lines[i] >= 0){
             cleared_lines++;
             printf("full line -- %i\n", full_lines[i]);
             int line = full_lines[i];
@@ -224,12 +226,12 @@ void FindFullLines(){
 
     time_btw_moves -= 0.005f * cleared_lines;
 
-    full_lines[0] = 0;
-    full_lines[1] = 0;
-    full_lines[2] = 0;
-    full_lines[3] = 0;
+    full_lines[0] = -1;
+    full_lines[1] = -1;
+    full_lines[2] = -1;
+    full_lines[3] = -1;
 
-    index = 0;
+    full_lines_count = 0;
     for(int i = 0; i < TILE_COUNT_Y; i++){
         int full_line = true;
         for(int j = 0; j < TILE_COUNT_X; j++){
@@ -242,11 +244,11 @@ void FindFullLines(){
         }   
 
         if(full_line){
-            full_lines[index++] = i + 1;
+            full_lines[full_lines_count++] = i + 1;
         }
     }
 
-    if(index > 0){
+    if(full_lines_count > 0){
         printf("--found a new line after new lines were solved, should run this function again\n");
         FindFullLines();
     }
@@ -319,7 +321,7 @@ int ReachedObstacle(){
         v2 structure = current_blk->structure[i];
         v2 coord = GetBoardCoord({structure.x * TILE_SIZE + curr_pos.x, structure.y * TILE_SIZE + curr_pos.y - 1});
 
-        if(coord.y < 0){
+        if(coord.y <= 0){
             result = true;
             break;
         }
@@ -374,14 +376,18 @@ void move_tetromino(int key){
         case GLFW_KEY_SPACE:{
             time_to_next_move = 0.0f;
             global_phase_down = true;
+            break;
         }
 
+        case GLFW_KEY_DOWN:
         case GLFW_KEY_S:{
             curr_pos.y -= move_amount;
             gSoloud.play(global_wav_move);
             break;
         }
 
+        
+        case GLFW_KEY_RIGHT:
         case GLFW_KEY_D:{
             if(!out_of_bounds_right){
                 curr_pos.x += move_amount;
@@ -398,6 +404,7 @@ void move_tetromino(int key){
             break;
         }
         
+        case GLFW_KEY_LEFT:
         case GLFW_KEY_A:{
 
             if(!out_of_bounds_left){
@@ -415,6 +422,8 @@ void move_tetromino(int key){
             break;
         }
 
+        
+        case GLFW_KEY_UP:
         case GLFW_KEY_W:{
             if(global_rotation_index >= global_parent.rotations_count){
                 global_rotation_index = 0;
@@ -538,7 +547,25 @@ void draw(AppState *app_state){
                     {tile_pos.x, tile_pos.y}, {TILE_SIZE, TILE_SIZE}, 
                         global_parent.color, BORDER_CLR);
         }
+
+        // draw current block "shadow"
+#if 0
+        for(int i = 0; i < 4; i++){
+            v2 tile_pos = {
+                curr_pos.x + (current_blk->structure[i].x * TILE_SIZE),
+                curr_pos.y + (current_blk->structure[i].y * TILE_SIZE)
+            };
+
+            tile_pos.y -= TILE_SIZE;
+
+            Render_Square *background = create_render_square(app_state,
+                    {tile_pos.x, tile_pos.y}, {TILE_SIZE, TILE_SIZE}, 
+                        RGBA{100.0f, 0.0f, 0.0f, 255.0f}, BORDER_CLR);
+        }
+#endif
     }
+
+
 
     // draw held block background
     DrawText(&trm, Create_String("HOLD"), 0.5f, 
