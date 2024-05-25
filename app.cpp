@@ -41,6 +41,7 @@
 #define BORDER_CLR {72.0f, 79.0f, 72.0f, 255.0f}
 #define TILE_CLR {16.0f, 31.0f, 17.0f, 255.0f}
 #define BACKGROUND_COLOR {50.0f, 50.0f, 50.0f, 255.0f}
+#define ANIMATION_TIME_SCALE 10
 
 struct Tile{
     RGBA color;
@@ -116,11 +117,15 @@ std::random_device rd;
 std::uniform_int_distribution<int> dist(0, SHAPES_COUNT - 1);
 
 bool global_phase_down = false;
+int global_clearing_time_scale = 0;
+int global_lines_to_clear[4] = {-1, -1, -1, -1};
 
 float time_btw_moves = 0.5f;
 
 #define PHASE_TIME 0.01f;
 float time_to_next_move = time_btw_moves;
+
+ParticleManager global_pms[TILE_COUNT_X][4] = {};
 
 static float global_shake_sin = 0.0f;
 #define CAMERA_SHAKE_SPEED 30
@@ -167,6 +172,7 @@ void SetCursorPosition(float x, float y){
 }
 
 void FindFullLines(){
+    int cleared_lines = 0;
     int full_lines[4] = {-1, -1, -1, -1};
     int full_lines_count = 0;
 
@@ -177,55 +183,42 @@ void FindFullLines(){
 
             if(!tile->taken){
                 full_line = false;
-                break;
+                // break;
+                j = TILE_COUNT_X;
             }
         }   
 
         if(full_line){
-            full_lines[full_lines_count++] = i + 1;
+            full_lines[full_lines_count++] = i;
+            cleared_lines++;
         }
+    }
+
+    if(full_lines_count > 0){
+        printf("full lines are - \n\t%i \n\t%i \n\t%i \n\t%i\n", full_lines[0], full_lines[1], full_lines[2], full_lines[3]);
     }
 
     // clear the lines
-    int cleared_lines = 0;
-    for(int i = 0; i < 4; i++){
-        if(full_lines[i] >= 0){
-            cleared_lines++;
-            printf("full line -- %i\n", full_lines[i]);
-            int line = full_lines[i];
+    if(cleared_lines > 0){
+        global_clearing_time_scale = ANIMATION_TIME_SCALE;
 
-            for(int j = 0; j < TILE_COUNT_X; j++){
-                Tile *tile = &global_tetris_board.tiles[j][line - 1];
-                tile->taken = false;
-                tile->color = TILE_CLR;
-            }
+        global_lines_to_clear[0] = full_lines[0];
+        global_lines_to_clear[1] = full_lines[1];
+        global_lines_to_clear[2] = full_lines[2];
+        global_lines_to_clear[3] = full_lines[3];
 
-            for(int j0 = line; j0 < TILE_COUNT_Y; j0++){
-                for(int j1 = 0; j1 < TILE_COUNT_X; j1++){
-                    Tile *tile_top = &global_tetris_board.tiles[j1][j0];
-                    Tile *tile_bottom = &global_tetris_board.tiles[j1][j0 - 1];
-
-                    if(tile_top->taken){
-                        tile_bottom->taken = true;
-                        tile_bottom->color = tile_top->color;
-                    }
-                    tile_top->taken = false;
-                    tile_top->color = TILE_CLR;
-                }
-            }
+        if(cleared_lines == 4){
+            global_score += 800.0f;
+        } else if(cleared_lines >= 0 && cleared_lines < 4){
+            global_score += 100 * cleared_lines + cleared_lines * 15.0f; 
+        } else {
+            printf("--- STRANGE --- > strange number of cleared lines --- > %i\n", cleared_lines);
         }
-    }
-
-    if(cleared_lines == 4){
-        global_score += 800.0f;
-    } else if(cleared_lines >= 0 && cleared_lines < 4){
-        global_score += 100 * cleared_lines + cleared_lines * 15.0f; 
-    } else {
-        printf("--- STRANGE --- > strange number of cleared lines --- > %i\n", cleared_lines);
     }
 
     time_btw_moves -= 0.005f * cleared_lines;
 
+#if 0
     full_lines[0] = -1;
     full_lines[1] = -1;
     full_lines[2] = -1;
@@ -250,8 +243,9 @@ void FindFullLines(){
 
     if(full_lines_count > 0){
         printf("--found a new line after new lines were solved, should run this function again\n");
-        FindFullLines();
+        // FindFullLines();
     }
+#endif
 }
 
 v2 GetBoardCoord(v2 position){
@@ -512,6 +506,27 @@ void SaveScore(int score){
     free(rdr.data);
 }
 
+void ResetParticleManager(ParticleManager *pm, v2 position){
+    if(!pm->ready){
+        *pm = {0};
+        pm->count = 100;
+        pm->ready = true;
+        pm->life_time = 1.0f;
+
+        for(int i = 0; i < pm->count; i++){
+            Particle *particle = &pm->particles[i];
+            // particle->acceleration = {0.5f,0.5f};
+            float randx = RandomFloat(0.1, 0.5) * 12.7;
+            float randy = RandomFloat(-0.5, 0.5) * 1.1;
+            particle->acceleration.x = randx; // rand
+            particle->acceleration.y = randy;
+            particle->position = position;
+            particle->size = {10, 10};
+            particle->color = {RandomFloat(30, 255.0f), RandomFloat(30, 255.0f), RandomFloat(30, 255.0f), 255.0f};
+        }
+    }
+}
+
 void draw(AppState *app_state){
     // draw background
     create_render_square(app_state,
@@ -564,8 +579,6 @@ void draw(AppState *app_state){
         }
 #endif
     }
-
-
 
     // draw held block background
     DrawText(&trm, Create_String("HOLD"), 0.5f, 
@@ -626,6 +639,8 @@ void draw(AppState *app_state){
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             global_pause = false;
         }
+    }else{
+        // draw particles
     }
 
     // draw game over
@@ -760,6 +775,25 @@ void draw(AppState *app_state){
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
     }
+
+    // draw particles
+    for(int i = 0; i < TILE_COUNT_X; i++){
+        for(int j = 0; j < 4; j++){
+            ParticleManager *pm = &global_pms[i][j];
+
+            if(pm->ready){
+                for(int k = 0; k < pm->count; k++){
+
+                    Particle *particle = &pm->particles[k];
+                    
+                    Render_Square *background = create_render_square(app_state,
+                            {particle->position.x, particle->position.y}, {particle->size.x, particle->size.y}, 
+                                particle->color, particle->color);
+                }
+            }
+        }
+    }
+
 }
 
 void app_start(AppState *app_state){
@@ -789,7 +823,15 @@ void app_start(AppState *app_state){
 }
 
 void app_update(AppState *app_state, float dt){
-    
+
+    for(int j = 0; j < 4; j++){
+        for(int i = 0; i < TILE_COUNT_X; i++){
+            if(global_pms[i][j].ready){
+                EmitParticles(&global_pms[i][j], dt);
+            }
+        }
+    }
+
     // TODO: work on borders
     if(reached_down){
         // change the color of the bottom blocks
@@ -841,16 +883,78 @@ void app_update(AppState *app_state, float dt){
     }
 
     // move down
-    if(time_to_next_move <= 0 && !global_game_over && !global_pause && !global_show_menuboard && !global_show_leaderboard){
-        curr_pos.y -= move_amount;
+    if(!global_game_over && !global_pause && !global_show_menuboard && !global_show_leaderboard){
 
-        if(!global_phase_down){
-            time_to_next_move = time_btw_moves;
-        }else{
-            gSoloud.play(global_wav_phase);
-            time_to_next_move = PHASE_TIME;
+        if(time_to_next_move <= 0){
+            if (global_clearing_time_scale <= 0) {
+                curr_pos.y -= move_amount;
+
+                if(!global_phase_down){
+                    time_to_next_move = time_btw_moves;
+                }else{
+                    gSoloud.play(global_wav_phase);
+                    time_to_next_move = PHASE_TIME;
+                }
+            } else if(global_clearing_time_scale > 0) {
+                if(time_to_next_move <= 0){
+                    // clearing with animation
+                    // time_to_next_move = 0.025f;
+                    time_to_next_move = 0.1f;
+            
+                    for(int i = 3; i >= 0; i--){
+                        int full_line = global_lines_to_clear[i];
+                        if(full_line >= 0){
+                            printf("full line -- %i\n", full_line);
+
+                            for(int j = 0; j < TILE_COUNT_X; j++){
+                                Tile *tile = &global_tetris_board.tiles[j][full_line];
+                                tile->taken = false;
+                                float percent_done = (float)TILE_COUNT_X / (float)j;
+                                float percent_done_prev = (float)TILE_COUNT_X / (float)(j - 1);
+                                
+                                float percent_time_left = (float)ANIMATION_TIME_SCALE / (float)global_clearing_time_scale;
+                                
+                                if((percent_time_left >= percent_done) && (percent_time_left <= percent_done_prev)){
+                                    tile->color.a = 0;
+                                    v2 tile_pos = start_pos;
+                                    tile_pos.x += TILE_SIZE * j;
+                                    tile_pos.y += TILE_SIZE * full_line;
+                                    
+                                    // v2 pos = GetBoardCoord(v2{(float)j, (float)full_line});
+                                    if(!global_pms[j][i].ready){
+                                        ResetParticleManager(&global_pms[j][i], v2{tile_pos.x, tile_pos.y});
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    global_clearing_time_scale--;
+
+                    // shift down
+                    if(global_clearing_time_scale <= 0){
+                        for(int i = 3; i >= 0; i--){
+                            int full_line = global_lines_to_clear[i];
+                            if(full_line >= 0){
+
+                                for(int j0 = full_line; j0 < TILE_COUNT_Y; j0++){
+                                    for(int j1 = 0; j1 < TILE_COUNT_X; j1++){
+                                        Tile *tile_top = &global_tetris_board.tiles[j1][j0];
+                                        Tile *tile_bottom = &global_tetris_board.tiles[j1][j0 - 1];
+
+                                        if(tile_top->taken){
+                                            tile_bottom->taken = true;
+                                            tile_bottom->color = tile_top->color;
+                                        }
+                                        tile_top->taken = false;
+                                        tile_top->color = TILE_CLR;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
-
     }
 
     if(!global_pause || !global_game_over || !global_show_menuboard ||  !global_show_leaderboard){

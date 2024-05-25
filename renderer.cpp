@@ -8,6 +8,38 @@
 #define PROJ_RIGHT 1060.0f
 #define PROJ_TOP 649.0f
 
+struct Particle{
+    v2 position;
+    v2 velocity;
+    v2 acceleration;
+    v2 size;
+    RGBA color;
+};
+
+struct ParticleManager{
+    float life_time;
+    bool ready;
+    int index;
+    int count;
+    Particle particles[100];
+};
+
+void EmitParticles(ParticleManager *pm, float dt){
+    for(int i = 0; i < pm->count; i++){
+        Particle *particle = &pm->particles[i];
+        particle->velocity += (particle->acceleration * dt);
+        particle->position += particle->velocity;
+        particle->acceleration += v2{0.1f, 0.1f} * dt;
+        // particle->position.x += 30.0f * dt;
+        particle->color.a -= dt  * 125.0f;
+    }
+
+    pm->life_time -= dt;
+    if(pm->life_time <= 0){
+        pm->ready = false;
+    }
+}
+
 void ReadFile(char *file_name, char *buffer) {
     char *result = 0;
 

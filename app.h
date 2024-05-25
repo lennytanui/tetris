@@ -26,6 +26,20 @@ struct v2{
         
         float e[2];
     };
+    
+    v2& operator+=(v2 &a){
+        this->x += a.x;
+        this->y += a.y;
+
+        return *this;
+    }
+
+    v2& operator-=(v2 &a){
+        this->x -= a.x;
+        this->y -= a.y;
+
+        return *this;
+    }
 };
 
 struct v3{
@@ -124,5 +138,12 @@ struct AppState{
     Render_Square* render_squares[10000];
     unsigned int render_squares_count;
 };
+
+float RandomFloat(float a, float b) {
+    float random = ((float) rand()) / (float) RAND_MAX;
+    float diff = b - a;
+    float r = random * diff;
+    return a + r;
+}
 
 void SetCursorPosition(float xpos, float ypos);
