@@ -19,15 +19,25 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         key == GLFW_KEY_S || key == GLFW_KEY_D || key == GLFW_KEY_SPACE ||
         key == GLFW_KEY_Z || key == GLFW_KEY_C || 
         key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS){           
-            move_tetromino(key);
+            Tetris::move_tetromino(key);
     }else if ((key == GLFW_KEY_UP || key == GLFW_KEY_LEFT || 
         key == GLFW_KEY_DOWN || key == GLFW_KEY_RIGHT || key == GLFW_KEY_SPACE ||
         key == GLFW_KEY_Z || key == GLFW_KEY_C || 
         key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS){           
-            move_tetromino(key);
+            Tetris::move_tetromino(key);
+    }
+
+    if((key == GLFW_KEY_BACKSPACE || key == GLFW_KEY_ENTER || key == GLFW_KEY_LEFT 
+        || GLFW_KEY_RIGHT) 
+        && (action == GLFW_PRESS || action == GLFW_REPEAT)){
+        Notes::NotesKeyPress(key, action);
     }
 }
 
+void character_callback(GLFWwindow* window, unsigned int codePoint)
+{
+    Notes::ReceiveCharacter(codePoint);
+}
 
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -64,6 +74,7 @@ int main(void) {
     glfwSetWindowSizeCallback(window, window_size_callback);
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
+    glfwSetCharCallback(window, character_callback);
 
     float delta_time = 1.0f;
     float start_time = 0.0f;

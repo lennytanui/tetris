@@ -1,5 +1,6 @@
 #pragma once
 #include "HandmadeMath.h"
+#include "math.h"
 
 static int window_width = 780;
 static int window_height = 490;
@@ -147,3 +148,6 @@ float RandomFloat(float a, float b) {
 }
 
 void SetCursorPosition(float xpos, float ypos);
+
+void ReceiveCharacter(unsigned int codePoint);
+void NotesKeyPress(int key, int action);

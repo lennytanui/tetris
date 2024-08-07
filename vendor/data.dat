@@ -36,6 +36,18 @@
 }
 {
  id : 0
+ score : 1265
+ date : date
+ time : time
+}
+{
+ id : 0
+ score : 1150
+ date : date
+ time : time
+}
+{
+ id : 0
  score : 1035
  date : date
  time : time

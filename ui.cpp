@@ -238,7 +238,7 @@ unsigned int Button(void *id, InputManager *im, TextRendererManager *trm, String
     // float textXPos = xpos;
     HMM_Vec2 textPos = pos;
     float width = textWidth;
-    float height = DEFAULT_TEXT_PIXEL_HEIGHT;
+    float height = 48;
 
     int state = glfwGetMouseButton(im->window, GLFW_MOUSE_BUTTON_LEFT);
     
@@ -285,15 +285,24 @@ unsigned int Button(void *id, InputManager *im, TextRendererManager *trm, String
     DrawRect(trm, pos, width, height, color);    
 
     unsigned int error = glGetError();
-    RenderText(trm, label, scale, HMM_Vec3{255.0f / 255.0f, 231.0f / 255.0f, 147.0f / 255.0f}, HMM_Vec2{textPos.X, textPos.Y});
+    Text text = {0};
+    text.string = label;
+    text.oneLine = true;
+
+    RenderText(trm, text, scale, HMM_Vec3{255.0f / 255.0f, 231.0f / 255.0f, 147.0f / 255.0f}, HMM_Vec2{textPos.X, textPos.Y});
     error = glGetError();
     return result;
 }
 
-unsigned int Text(TextRendererManager *trm, InputManager *im, float scale, String label, HMM_Vec2 pos,  HMM_Vec3 color){
+unsigned int DrawUIText(TextRendererManager *trm, InputManager *im, float scale, String label, HMM_Vec2 pos,  HMM_Vec3 color){
     pos += im->parent_pos;
-    pos.Y += DEFAULT_TEXT_PIXEL_HEIGHT * scale;
-    RenderText(trm, label, scale, color / 255.0f, pos);
+    pos.Y += 48 * scale;
+
+    Text text = {0};
+    text.string = label;
+    text.oneLine = true;
+
+    RenderText(trm, text, scale, color / 255.0f, pos);
     return true;
 }
 

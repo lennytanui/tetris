@@ -5,10 +5,10 @@
 #include "stb_image.h"
 #include "HandmadeMath.h"
 
-#define PROJ_RIGHT 1060.0f
-#define PROJ_TOP 649.0f
+#define PROJ_RIGHT 1920.0f
+#define PROJ_TOP 1080.0f
 
-struct Particle{
+struct ParticleData{
     v2 position;
     v2 velocity;
     v2 acceleration;
@@ -16,12 +16,25 @@ struct Particle{
     RGBA color;
 };
 
+struct Particle{
+    // Note (Lenny): This will have to be removed. Replaced by ParticleData struct
+    v2 position;
+    v2 velocity;
+    v2 acceleration;
+    v2 size;
+    RGBA color;
+
+    ParticleData current;
+    ParticleData original;
+};
+
 struct ParticleManager{
     float life_time;
+    float current_time;
     bool ready;
     int index;
     int count;
-    Particle particles[100];
+    Particle particles[1000];
 };
 
 void EmitParticles(ParticleManager *pm, float dt){
