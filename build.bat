@@ -13,6 +13,18 @@
 
 @REM ENV (environment) can either be GNU, MSVC, or WEB
 set ENV= MSVC
+
+if %ENV% == MSVC (
+    where cl >nul 2>nul
+
+    if %errorlevel% neq 0 (
+        echo "MSVC 'cl' command does not exist"
+        echo "  Cannot continue. Exiting"
+        exit /b 1
+    ) 
+)
+
+
 set makecall= mingw32-make
 
 set GLFW_DIR= ".\vendor\libs_src\glfw"
@@ -20,7 +32,7 @@ set FreeType_DIR= ".\vendor\libs_src\freetype-2.10.0"
 set EMSDK_DIR= ".\vendor\libs_src\emdsk"
 
 if not exist ".\build" (
-    echo "Creating `.\build` directory"
+    echo "Creating `.\build` directory in %cd"
     mkdir ".\build"
 )
 
