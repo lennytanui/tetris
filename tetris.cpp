@@ -38,7 +38,7 @@
 #define TILE_COUNT_X 10
 #define TILE_COUNT_Y 18
 
-#define TILE_SIZE 30.0f
+#define TILE_SIZE 50.0f
 #define BORDER_CLR {72.0f, 79.0f, 72.0f, 255.0f}
 #define TILE_CLR {16.0f, 31.0f, 17.0f, 255.0f}
 #define BACKGROUND_COLOR {50.0f, 50.0f, 50.0f, 255.0f}
@@ -370,7 +370,6 @@ void move_tetromino(int key){
     }
 
     switch(key){
-
         // zoom down
         case GLFW_KEY_SPACE:{
             time_to_next_move = 0.0f;

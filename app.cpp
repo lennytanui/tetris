@@ -6,7 +6,7 @@ enum APPS {
     NOTES
 };
 
-enum APPS currentApp = NOTES;
+enum APPS currentApp = TETRIS;
 
 void app_start(AppState *app_state){
     if(currentApp == TETRIS){

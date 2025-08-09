@@ -27,11 +27,13 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
             Tetris::move_tetromino(key);
     }
 
+    #if 0
     if((key == GLFW_KEY_BACKSPACE || key == GLFW_KEY_ENTER || key == GLFW_KEY_LEFT 
         || GLFW_KEY_RIGHT) 
         && (action == GLFW_PRESS || action == GLFW_REPEAT)){
         Notes::NotesKeyPress(key, action);
     }
+    #endif
 }
 
 void character_callback(GLFWwindow* window, unsigned int codePoint)
