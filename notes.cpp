@@ -15,7 +15,7 @@ v2 cursorPos = {0.0f, 0.0f};
 v2 cursorDim = {15.0f, 50.0f};
 RGBA cursorColor = {150.0f, 20.0f, 15.0f, 255.0f};
 
-v2 testSquarePos = {0.0f, 0.0f};
+v4 testSquarePos = {0.0f, 0.0f, 0.0f, 0.0f};
 v2 testSquareDim = {PROJ_RIGHT, PROJ_TOP};
 RGBA testSquareClr = {60.0f, 60.0f, 60.0f, 255.0f};
 RGBA testSquareBrdClr = testSquareClr;
@@ -207,7 +207,7 @@ void draw(AppState *app_state){
 
     testSquare = create_render_square(app_state, testSquarePos, 
         testSquareDim, testSquareClr, testSquareBrdClr);
-    cursorSquare = create_render_square(app_state, cursorPos,
+    cursorSquare = create_render_square(app_state, v4{cursorPos.x, curr_pos.y, 0.0f, 0.0f},
         cursorDim, cursorColor, cursorColor);
 
     if(currBlinkTime <= timeBtwBlink){

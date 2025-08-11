@@ -45,14 +45,15 @@ void FireScene::Update(AppState *app_state, float dt) {
 void FireScene::Draw(AppState *app_state){
     // render background
     create_render_square(app_state,
-    {0.0f, 0.0f}, {1200.0f, 1200.0f}, 
+    {0.0f, 0.0f, 0.0f, 0.0f}, {1200.0f, 1200.0f}, 
     RGBA{0.0f, 0.0f, 0.0f, 255.0f}, RGBA{255.0f, 0.0f, 0.0f, 255.0f});
 
     // render particles
     for(int i = 0; i < particlesManager.count; i++){
         Particle *particle = &particlesManager.particles[i];
         
-        create_render_square(app_state, particle->current.position, 
+        v4 particlePos = {particle->current.position.x, particle->current.position.y, 0.0f, 1.0f};
+        create_render_square(app_state, particlePos, 
             particle->current.size, particle->current.color, 
             particle->current.color);
     }

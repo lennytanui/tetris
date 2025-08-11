@@ -112,7 +112,7 @@ v3 operator*(v3 a, float b){
 
 struct Render_Square{
     v2 dimensions;
-    v2 position;
+    v4 position;
     RGBA color;
     RGBA border_clr;
     unsigned int vao;

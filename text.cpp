@@ -322,6 +322,7 @@ void RenderText(TextRendererManager *trm, Text text, float scale, HMM_Vec3 color
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);
     glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
     glUseProgram(0);
 
 }
@@ -390,6 +391,7 @@ void RenderTextEditor(TextRendererManager *trm, Text text, float scale, HMM_Vec3
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);
     glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
     glUseProgram(0);
 
 }

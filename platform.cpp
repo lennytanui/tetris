@@ -15,30 +15,41 @@ static void window_size_callback(GLFWwindow* window, int width, int height)
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if ((key == GLFW_KEY_W || key == GLFW_KEY_A || 
-        key == GLFW_KEY_S || key == GLFW_KEY_D || key == GLFW_KEY_SPACE ||
-        key == GLFW_KEY_Z || key == GLFW_KEY_C || 
-        key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS){           
-            Tetris::move_tetromino(key);
-    }else if ((key == GLFW_KEY_UP || key == GLFW_KEY_LEFT || 
-        key == GLFW_KEY_DOWN || key == GLFW_KEY_RIGHT || key == GLFW_KEY_SPACE ||
-        key == GLFW_KEY_Z || key == GLFW_KEY_C || 
-        key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS){           
-            Tetris::move_tetromino(key);
-    }
+    switch(currentApp){
+        case TETRIS: {
 
-    #if 0
-    if((key == GLFW_KEY_BACKSPACE || key == GLFW_KEY_ENTER || key == GLFW_KEY_LEFT 
-        || GLFW_KEY_RIGHT) 
-        && (action == GLFW_PRESS || action == GLFW_REPEAT)){
-        Notes::NotesKeyPress(key, action);
+            if ((key == GLFW_KEY_W || key == GLFW_KEY_A || 
+                key == GLFW_KEY_S || key == GLFW_KEY_D || key == GLFW_KEY_SPACE ||
+                key == GLFW_KEY_Z || key == GLFW_KEY_C || 
+                key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS){           
+                    Tetris::move_tetromino(key);
+            }else if ((key == GLFW_KEY_UP || key == GLFW_KEY_LEFT || 
+                key == GLFW_KEY_DOWN || key == GLFW_KEY_RIGHT || key == GLFW_KEY_SPACE ||
+                key == GLFW_KEY_Z || key == GLFW_KEY_C || 
+                key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS){           
+                    Tetris::move_tetromino(key);
+            }
+
+            break;
+        };
+
+        case NOTES:{
+            if((key == GLFW_KEY_BACKSPACE || key == GLFW_KEY_ENTER || key == GLFW_KEY_LEFT 
+                || GLFW_KEY_RIGHT) 
+                && (action == GLFW_PRESS || action == GLFW_REPEAT)){
+                Notes::NotesKeyPress(key, action);
+            }
+        };
+
+        default: break;
     }
-    #endif
 }
 
 void character_callback(GLFWwindow* window, unsigned int codePoint)
 {
-    Notes::ReceiveCharacter(codePoint);
+    if(currentApp == NOTES){
+        Notes::ReceiveCharacter(codePoint);
+    }
 }
 
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
@@ -78,6 +89,9 @@ int main(void) {
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetCharCallback(window, character_callback);
 
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+
     float delta_time = 1.0f;
     float start_time = 0.0f;
 
@@ -88,7 +102,7 @@ int main(void) {
         /* Render here */
         glViewport(0, 0, window_width, window_height);
 
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(1.0f, 0.0f, 0.0f, 255.0f);
 
         // glEnable(GL_BLEND);

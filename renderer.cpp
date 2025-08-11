@@ -59,7 +59,8 @@ void ReadFile(char *file_name, char *buffer) {
     buffer = result;
 }
 
-Render_Square *create_render_square(AppState *app_state, v2 position, v2 dimensions, RGBA color, RGBA border_clr){
+// position is v4 because of depth on .w
+Render_Square *create_render_square(AppState *app_state, v4 position, v2 dimensions, RGBA color, RGBA border_clr){
 
     Render_Square *render_square = (Render_Square *)malloc(sizeof(Render_Square));
     render_square->color = color;
@@ -76,6 +77,7 @@ void draw_render_squares(AppState *app_state){
 
 }
 
+// Renders the rectangles from the "render_squares"
 void RenderRectangles(AppState *app_state, float dt) {
     
     HMM_Vec3 cam_pos = {app_state->cam_pos.x, app_state->cam_pos.y, app_state->cam_pos.z}; 
@@ -112,7 +114,7 @@ void RenderRectangles(AppState *app_state, float dt) {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         char *basic_vs_src = "#version 330 core \n"\
-                        "layout (location = 0) in vec3 aPos; \n"\
+                        "layout (location = 0) in vec4 aPos; \n"\
                         "layout (location = 1) in vec4 aColor; \n"\
                         "layout (location = 2) in vec2 aTexCoord; \n"\
                         "layout (location = 3) in vec4 a_border_clr; \n"\
@@ -126,7 +128,7 @@ void RenderRectangles(AppState *app_state, float dt) {
                         "out vec4 border_clr; \n"\
                         "void main() { \n"\
                             "pos_ = aTexCoord; \n;"\
-                            "gl_Position = u_projection * u_view * vec4(aPos.x, aPos.y, aPos.z, 1.0f); \n"\
+                            "gl_Position = u_projection * u_view * vec4(aPos.x, aPos.y, aPos.z, aPos.w); \n"\
                             "texCoord = aTexCoord; \n"\
                             "color = aColor;\n" \
                             "border_clr = a_border_clr; \n"\
@@ -216,7 +218,7 @@ void RenderRectangles(AppState *app_state, float dt) {
 
         stbi_image_free(data);
 
-        app_state->proj = HMM_Orthographic_LH_NO(0.0f, PROJ_RIGHT, 0.0f, PROJ_TOP, 0.0f, 1.0f);
+        app_state->proj = HMM_Orthographic_LH_NO(0.0f, PROJ_RIGHT, 0.0f, PROJ_TOP, 0.0f, 10.0f);
 
         app_state->initialized = true;
     }
@@ -230,7 +232,7 @@ void RenderRectangles(AppState *app_state, float dt) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
-    glDisable(GL_DEPTH_TEST);
+    // glDisable(GL_DEPTH_TEST);
     glBindTexture(GL_TEXTURE_2D, 
             app_state->textures[(app_state->tex_count - 1)]);
 
@@ -246,7 +248,7 @@ void RenderRectangles(AppState *app_state, float dt) {
 
     for(int i = 0; i < app_state->render_squares_count; i++){
         Render_Square *render_square = app_state->render_squares[i];
-        v2 pos = render_square->position;
+        v4 pos = render_square->position;
         RGBA clr = render_square->color;
         clr.r /= 255.0f;
         clr.g /= 255.0f;
@@ -263,10 +265,10 @@ void RenderRectangles(AppState *app_state, float dt) {
 
         float vertices[] = {
              // positions                                 // color                    // texture coords     // border color
-             pos.x + size.x,  pos.y + size.y,   0.0f,     clr.r, clr.g, clr.b, clr.a,     1.0f, 1.0f,       b_clr.r, b_clr.g, b_clr.b, b_clr.a,  // top right
-             pos.x + size.x,  pos.y,            0.0f,     clr.r, clr.g, clr.b, clr.a,     1.0f, 0.0f,       b_clr.r, b_clr.g, b_clr.b, b_clr.a,  // bottom right
-             pos.x,           pos.y,            0.0f,     clr.r, clr.g, clr.b, clr.a,     0.0f, 0.0f,       b_clr.r, b_clr.g, b_clr.b, b_clr.a,  // bottom left
-             pos.x,           pos.y + size.y,   0.0f,     clr.r, clr.g, clr.b, clr.a,     0.0f, 1.0f,       b_clr.r, b_clr.g, b_clr.b, b_clr.a  // top left
+             pos.x + size.x,  pos.y + size.y,   pos.z, pos.w,     clr.r, clr.g, clr.b, clr.a,     1.0f, 1.0f,       b_clr.r, b_clr.g, b_clr.b, b_clr.a,  // top right
+             pos.x + size.x,  pos.y,            pos.z, pos.w,     clr.r, clr.g, clr.b, clr.a,     1.0f, 0.0f,       b_clr.r, b_clr.g, b_clr.b, b_clr.a,  // bottom right
+             pos.x,           pos.y,            pos.z, pos.w,     clr.r, clr.g, clr.b, clr.a,     0.0f, 0.0f,       b_clr.r, b_clr.g, b_clr.b, b_clr.a,  // bottom left
+             pos.x,           pos.y + size.y,   pos.z, pos.w,     clr.r, clr.g, clr.b, clr.a,     0.0f, 1.0f,       b_clr.r, b_clr.g, b_clr.b, b_clr.a  // top left
         };
     
         glBindVertexArray(app_state->basic_vao);
@@ -280,14 +282,14 @@ void RenderRectangles(AppState *app_state, float dt) {
             vertices, GL_STATIC_DRAW);        
 
         // describe the data in the buffer
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 13 * sizeof(float), 
-            (void*)0);
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 13 * sizeof(float), 
-            (void*)(3 * sizeof(float)));
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 13 * sizeof(float), 
-            (void*)(7 * sizeof(float)));
-        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 13 * sizeof(float), 
-            (void*)(9 * sizeof(float)));
+        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 14 * sizeof(float), 
+            (void*)0); // aPos
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 14 * sizeof(float), 
+            (void*)(4 * sizeof(float))); // aColor
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), 
+            (void*)(8 * sizeof(float))); // aTexCoord
+        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 14 * sizeof(float), 
+            (void*)(10 * sizeof(float))); // a_border_clr
 
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
