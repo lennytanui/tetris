@@ -39,12 +39,13 @@
 #define TILE_COUNT_Y 18
 
 #define TILE_SIZE 50.0f
-#define BORDER_CLR {72.0f, 79.0f, 72.0f, 255.0f}
+#define BORDER_CLR {72.0f, 79.0f, 72.0f, 0.0f}
 #define TILE_CLR {16.0f, 31.0f, 17.0f, 255.0f}
 #define BACKGROUND_COLOR {50.0f, 50.0f, 50.0f, 255.0f}
-#define ANIMATION_TIME_SCALE 3.5
+#define TIME_TO_CLEAR_ROW 1.0f
 
 struct Tile{
+    Block_Info type;
     RGBA color;
     RGBA border_clr;
     float age;
@@ -87,7 +88,7 @@ AppState *global_app_state = 0;
 
 Tetris_Board global_tetris_board = {};
 
-Block_Info global_parent = SHAPE_zigzag2;
+Block_Info global_parent = SHAPE_straight; // Starting block
 Child_Block *current_blk = &global_parent.rotations[0];
 int parent_blk_index = 0;
 
@@ -120,7 +121,8 @@ std::random_device rd;
 std::uniform_int_distribution<int> dist(0, SHAPES_COUNT - 1);
 
 bool global_phase_down = false;
-int global_clearing_time_scale = 0;
+float global_lines_count_to_clear = 0; // # of line to clear
+float global_time_to_clear_lines = 0; // time to clear the filled lines
 int global_lines_to_clear[4] = {-1, -1, -1, -1};
 
 float global_time_btw_moves = 0.5f;
@@ -190,7 +192,6 @@ void FindFullLines(){
 
             if(!tile->taken){
                 full_line = false;
-                // break;
                 j = TILE_COUNT_X;
             }
         }   
@@ -201,19 +202,17 @@ void FindFullLines(){
         }
     }
 
-    if(full_lines_count > 0){
-        // printf("full lines are - \n\t%i \n\t%i \n\t%i \n\t%i\n", full_lines[0], full_lines[1], full_lines[2], full_lines[3]);
-    }
-
     // clear the lines
     if(cleared_lines > 0){
-        global_clearing_time_scale = ANIMATION_TIME_SCALE;
+        global_lines_count_to_clear = (float)cleared_lines;
+        global_time_to_clear_lines = (float)cleared_lines;
 
         global_lines_to_clear[0] = full_lines[0];
         global_lines_to_clear[1] = full_lines[1];
         global_lines_to_clear[2] = full_lines[2];
         global_lines_to_clear[3] = full_lines[3];
 
+        // Update scor based on cleared lines
         if(cleared_lines == 4){
             global_score += 800.0f;
         } else if(cleared_lines >= 0 && cleared_lines < 4){
@@ -267,7 +266,6 @@ Block_Info GetNewParentBlock(){
     }
 
     used_blocks[rand_index]++;
-    
     result = blocks_table[rand_index];
 
     // check if out of bounds on the right
@@ -287,12 +285,13 @@ Block_Info GetNewParentBlock(){
     return result;
 }
 
-int ReachedObstacle(){
+int ReachedObstacle(v2 position){
     int result = 0;
 
     for(int i = 0; i < 4; i++){
         v2 structure = current_blk->structure[i];
-        v2 coord = GetBoardCoord({structure.x * TILE_SIZE + curr_pos.x, structure.y * TILE_SIZE + curr_pos.y - 1});
+        // v2 coord = GetBoardCoord({structure.x * TILE_SIZE + curr_pos.x, structure.y * TILE_SIZE + curr_pos.y - 1});
+        v2 coord = GetBoardCoord({structure.x * TILE_SIZE + position.x, structure.y * TILE_SIZE + position.y - 1});
 
         if(coord.y <= 0){
             result = true;
@@ -365,7 +364,7 @@ void move_tetromino(int key){
                 curr_pos.x += move_amount;
             }
 
-            if(ReachedObstacle()){
+            if(ReachedObstacle(curr_pos)){
                 curr_pos.x -= move_amount;
             }else{
                 if(!out_of_bounds_right){
@@ -383,7 +382,7 @@ void move_tetromino(int key){
                 curr_pos.x -= move_amount;
             }
 
-            if(ReachedObstacle()){
+            if(ReachedObstacle(curr_pos)){
                 curr_pos.x += move_amount;
             }else{
                 if(!out_of_bounds_left){
@@ -508,7 +507,7 @@ void ResetParticleManager(ParticleManager *pm, v2 position){
 void draw(AppState *app_state, float dt){
     // draw background
     create_render_square(app_state,
-        v4{0.0f, 0.0f, 6.0f, 1.0f}, {(float)PROJ_RIGHT, (float)PROJ_TOP}, 
+        v4{0.0f, 0.0f, 6.0f, 1.0f}, {(float)PROJ_RIGHT * 1.5f, (float)PROJ_TOP * 1.5f}, 
         BACKGROUND_COLOR, BACKGROUND_COLOR);
 
     // draw the tiles
@@ -559,6 +558,56 @@ void draw(AppState *app_state, float dt){
         tile_pos.y = start_pos.y;
     }    
 
+    #if 0
+     // draw the grid
+    v2 tile_pos = start_pos;
+
+    for(int x = 0; x < TILE_COUNT_X; x++){
+        for(int y = 0; y < TILE_COUNT_Y; y++){
+            Tile *tile = &global_tetris_board.tiles[x][y];   
+            
+            float t = 0.25f;
+
+            v2 tile_pos_offset = {0.0f, 0.0f};
+            if(tile->taken){
+                // block lock animation if age < 5;
+                float grow_size = 100.0f;
+                if(tile->age <= t){
+                    if(tile->age < (t / 2.0f)){
+                        tile->size.X += grow_size * dt;
+                        tile->size.Y += grow_size * dt;
+
+                        tile_pos_offset.x = -1 * grow_size * tile->age;
+                        tile_pos_offset.y = -1 * grow_size * tile->age;
+                    } else {
+                        tile->size.X -= grow_size * dt;
+                        tile->size.Y -= grow_size * dt;
+                        
+                        tile_pos_offset.x = -1 * grow_size * (t - tile->age);
+                        tile_pos_offset.y = -1 * grow_size * (t - tile->age);
+                    }
+                }else{
+                    tile->size.X = TILE_SIZE;
+                    tile->size.Y = TILE_SIZE;
+                }
+            }
+
+            float z_index = 5.0f;
+            if(tile->age < t & tile->age > 0){
+                z_index = 5.5f;
+            }
+            Render_Square *render_square = create_render_square(app_state,
+                v4{tile_pos.x + tile_pos_offset.x, tile_pos.y + tile_pos_offset.y, z_index, 1.0f}, {tile->size.X, tile->size.Y}, 
+                    tile->color, tile->border_clr);
+            
+            tile_pos.y += TILE_SIZE;
+        }
+        
+        tile_pos.x += TILE_SIZE;
+        tile_pos.y = start_pos.y;
+    }    
+#endif
+
     // draw current block
     if(!global_show_menuboard || !global_show_leaderboard){
         for(int i = 0; i < 4; i++){
@@ -572,21 +621,46 @@ void draw(AppState *app_state, float dt){
                         global_parent.color, BORDER_CLR);
         }
 
+        // calculate current block "shadow" position
+        int current_blk_height = 0;
+        float shadow_y = 0;
+        for(int i = 0; i < 4; i++){
+            if(current_blk->structure[i].y > current_blk_height){
+                current_blk_height = current_blk->structure[i].y;
+            }
+
+            // Scan through the lower tiles to find closest block
+            int reached_down = 0;
+            float j = curr_pos.y;
+        
+            while(reached_down == 0){
+                v2 tile_pos = {
+                    curr_pos.x + (current_blk->structure[i].x * TILE_SIZE),
+                    j + (current_blk->structure[i].y * TILE_SIZE)
+                };
+
+                reached_down = ReachedObstacle(v2{curr_pos.x, j});
+                j--;
+            }
+            if(j > shadow_y){
+                shadow_y = j;
+            }
+        }
+
         // draw current block "shadow"
-#if 0
         for(int i = 0; i < 4; i++){
             v2 tile_pos = {
                 curr_pos.x + (current_blk->structure[i].x * TILE_SIZE),
-                curr_pos.y + (current_blk->structure[i].y * TILE_SIZE)
+                shadow_y + (current_blk->structure[i].y * TILE_SIZE)
             };
 
-            tile_pos.y -= TILE_SIZE;
+            // tile_pos.y -= TILE_SIZE * (current_blk_height + 1);
 
             Render_Square *background = create_render_square(app_state,
                     {tile_pos.x, tile_pos.y, 0.0f, 1.0f}, {TILE_SIZE, TILE_SIZE}, 
-                        RGBA{100.0f, 0.0f, 0.0f, 255.0f}, BORDER_CLR);
+                        BORDER_CLR, global_parent.color);
         }
-#endif
+
     }
 
     // draw held block background
@@ -863,10 +937,12 @@ void start(AppState *app_state){
 
 void update(AppState *app_state, float dt){
 
-    // fireScene.Update(app_state, dt);
-    // fireScene.Draw(app_state);
+#if 0 // Fire Scene Updates
+    fireScene.Update(app_state, dt);
+    fireScene.Draw(app_state);
+#endif
 
-#if 1 // Tetris
+#if 1 // Tetris Updates
     for(int j = 0; j < 4; j++){
         for(int i = 0; i < TILE_COUNT_X; i++){
             if(global_pms[i][j].ready){
@@ -875,6 +951,7 @@ void update(AppState *app_state, float dt){
         }
     }
 
+    // Iterate through all tiles and update ages
     for(int x = 0; x < TILE_COUNT_X; x++){
         for(int y = 0; y < TILE_COUNT_Y; y++){
             Tile *tile = &global_tetris_board.tiles[x][y];
@@ -908,6 +985,7 @@ void update(AppState *app_state, float dt){
             tile->taken = true;
             tile->age = 0;
             tile->color = global_parent.color;
+            tile->type = global_parent;
         }
 
         // Note (Lenny) : should the index persist?
@@ -921,7 +999,7 @@ void update(AppState *app_state, float dt){
         global_reached_down = 0;
 
         // check if spawned on top of a piece
-        if(ReachedObstacle()){
+        if(ReachedObstacle(curr_pos)){
             global_last_game_score = global_score;
             if(global_score > 0){
                 SaveScore(global_score);
@@ -945,73 +1023,61 @@ void update(AppState *app_state, float dt){
         gSoloud.play(global_wav_reached_down);
     }
 
-    // move down
+    // Tetris main calculations
     if(!global_game_over && !global_pause && !global_show_menuboard && !global_show_leaderboard){
 
-        if(global_time_to_next_move <= 0){
-            if (global_clearing_time_scale <= 0) {
+        if(global_time_to_next_move <= 0){ // Move down
+            if (global_time_to_clear_lines <= 0) { // all lines are cleared
                 curr_pos.y -= move_amount;
 
-                if(!global_phase_down){
-                    global_time_to_next_move = global_time_btw_moves;
-                }else{
+                if(global_phase_down){
                     gSoloud.play(global_wav_phase);
                     global_time_to_next_move = PHASE_TIME;
+                }else{
+                    global_time_to_next_move = global_time_btw_moves;
                 }
-            } else if(global_clearing_time_scale > 0) {
-                if(global_time_to_next_move <= 0){
-                    // clearing with animation
-                    // global_time_to_next_move = 0.025f;
-                    global_time_to_next_move = 0.1f;
-            
+            } else if(global_time_to_clear_lines > 0) {
+                global_time_to_clear_lines -= 4 * dt;
+                // clearing with animation
+                for(int i = 3; i >= 0; i--){
+                    int full_line = global_lines_to_clear[i];
+
+                    if(full_line < 0) // not a full line
+                        continue;
+
+                    for(int j = 0; j < TILE_COUNT_X; j++){
+                        Tile *tile = &global_tetris_board.tiles[j][full_line];
+                        tile->taken = false;
+                        float percent_done = (float)j / TILE_COUNT_X;
+                        float percent_done_prev = (float)TILE_COUNT_X / (float)(j - 1);
+                        
+                        float percent_time_left = (float)global_time_to_clear_lines / (float)global_lines_count_to_clear;
+
+                        tile->color.r = tile->type.color.r * (percent_time_left * (4 - i)) * percent_time_left;
+                        tile->color.g = tile->type.color.g * (percent_time_left * (4 - i)) * percent_time_left;
+                        tile->color.b = tile->type.color.b * (percent_time_left * (4 - i)) * percent_time_left;
+                    }
+
+                }
+                // global_lines_count_to_clear--;
+
+                // shift down
+                if(global_time_to_clear_lines <= 0){
                     for(int i = 3; i >= 0; i--){
                         int full_line = global_lines_to_clear[i];
                         if(full_line >= 0){
-                            printf("full line -- %i\n", full_line);
 
-                            for(int j = 0; j < TILE_COUNT_X; j++){
-                                Tile *tile = &global_tetris_board.tiles[j][full_line];
-                                tile->taken = false;
-                                tile->age = i * 0.02f;
-                                float percent_done = (float)TILE_COUNT_X / (float)j;
-                                float percent_done_prev = (float)TILE_COUNT_X / (float)(j - 1);
-                                
-                                float percent_time_left = (float)ANIMATION_TIME_SCALE / (float)global_clearing_time_scale;
-                                
-                                if((percent_time_left >= percent_done) && (percent_time_left <= percent_done_prev)){
-                                    tile->color.a = 0;
-                                    v2 tile_pos = start_pos;
-                                    tile_pos.x += TILE_SIZE * j;
-                                    tile_pos.y += TILE_SIZE * full_line;
-                                    
-                                    // v2 pos = GetBoardCoord(v2{(float)j, (float)full_line});
-                                    if(!global_pms[j][i].ready){
-                                        ResetParticleManager(&global_pms[j][i], v2{tile_pos.x, tile_pos.y});
+                            for(int j0 = full_line; j0 < TILE_COUNT_Y; j0++){
+                                for(int j1 = 0; j1 < TILE_COUNT_X; j1++){
+                                    Tile *tile_top = &global_tetris_board.tiles[j1][j0];
+                                    Tile *tile_bottom = &global_tetris_board.tiles[j1][j0 - 1];
+
+                                    if(tile_top->taken){
+                                        tile_bottom->taken = true;
+                                        tile_bottom->color = tile_top->color;
                                     }
-                                }
-                            }
-                        }
-                    }
-                    global_clearing_time_scale--;
-
-                    // shift down
-                    if(global_clearing_time_scale <= 0){
-                        for(int i = 3; i >= 0; i--){
-                            int full_line = global_lines_to_clear[i];
-                            if(full_line >= 0){
-
-                                for(int j0 = full_line; j0 < TILE_COUNT_Y; j0++){
-                                    for(int j1 = 0; j1 < TILE_COUNT_X; j1++){
-                                        Tile *tile_top = &global_tetris_board.tiles[j1][j0];
-                                        Tile *tile_bottom = &global_tetris_board.tiles[j1][j0 - 1];
-
-                                        if(tile_top->taken){
-                                            tile_bottom->taken = true;
-                                            tile_bottom->color = tile_top->color;
-                                        }
-                                        tile_top->taken = false;
-                                        tile_top->color = TILE_CLR;
-                                    }
+                                    tile_top->taken = false;
+                                    tile_top->color = TILE_CLR;
                                 }
                             }
                         }
@@ -1019,9 +1085,7 @@ void update(AppState *app_state, float dt){
                 }
             }
         }
-    }
 
-    if(!global_pause || !global_game_over || !global_show_menuboard ||  !global_show_leaderboard){
         global_time_to_next_move -= dt;
     }
 
@@ -1029,7 +1093,7 @@ void update(AppState *app_state, float dt){
     if(global_game_over || global_show_menuboard){
         global_reached_down = 0;
     }else{
-        global_reached_down = ReachedObstacle();
+        global_reached_down = ReachedObstacle(curr_pos);
     }
 
     camera_shake(&app_state->cam_pos, dt);
