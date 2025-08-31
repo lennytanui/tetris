@@ -8,9 +8,19 @@
 
 static void window_size_callback(GLFWwindow* window, int width, int height)
 {
-    printf("Alert : Window Resized \n");
-    window_width = width;
-    window_height = height;
+    global_window_width = width;
+    global_window_height = height;
+
+    Tetris::UpdateTRM();
+}
+
+// TODO: should use this viewport
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    global_frame_buffer_width = width;
+    global_frame_buffer_height = height;
+    glViewport(0, 0, global_frame_buffer_width, global_frame_buffer_height);
+    
 }
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -65,7 +75,7 @@ int main(void) {
     }
 
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(window_width, window_height, "Tetris", NULL, NULL);
+    window = glfwCreateWindow(global_window_width, global_window_height, "Tetris", NULL, NULL);
     if (!window) {
         printf("Failed to Create Window \n");
         glfwTerminate();
@@ -85,6 +95,7 @@ int main(void) {
     AppState app_state = {};
 
     glfwSetWindowSizeCallback(window, window_size_callback);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetCharCallback(window, character_callback);
@@ -99,15 +110,12 @@ int main(void) {
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window)) {
         float start_time = glfwGetTime();
+        
         /* Render here */
-        glViewport(0, 0, window_width, window_height);
+        glViewport(0, 0, global_window_width, global_window_height);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(1.0f, 0.0f, 0.0f, 255.0f);
-
-        // glEnable(GL_BLEND);
-        // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        // glBlendEquation(GL_FUNC_ADD);
 
         RenderRectangles(&app_state, delta_time);
         app_update(&app_state, delta_time);

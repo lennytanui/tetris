@@ -5,8 +5,8 @@
 #include "stb_image.h"
 #include "HandmadeMath.h"
 
-#define PROJ_RIGHT 1920.0f
-#define PROJ_TOP 1080.0f
+// #define PROJ_RIGHT 1920.0f
+// #define PROJ_TOP 1080.0f
 
 struct ParticleData{
     v2 position;
@@ -87,17 +87,6 @@ void RenderRectangles(AppState *app_state, float dt) {
         glGenVertexArrays(1, &app_state->basic_vao);
         glBindVertexArray(app_state->basic_vao);
         
-        // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), 
-        //     (void*)0);
-        // glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 9 * sizeof(float), 
-        //     (void*)(3 * sizeof(float)));
-        // glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), 
-        //     (void*)(7 * sizeof(float)));
-
-        // glEnableVertexAttribArray(0);
-        // glEnableVertexAttribArray(1);
-        // glEnableVertexAttribArray(2);
-    
         unsigned int indices[] = {
             0, 1, 3, // first triangle
             1, 2, 3  // second triangle
@@ -218,7 +207,7 @@ void RenderRectangles(AppState *app_state, float dt) {
 
         stbi_image_free(data);
 
-        app_state->proj = HMM_Orthographic_LH_NO(0.0f, PROJ_RIGHT, 0.0f, PROJ_TOP, 0.0f, 10.0f);
+        app_state->proj = HMM_Orthographic_LH_NO(0.0f, global_window_width, 0.0f, global_window_height, 0.0f, 10.0f);
 
         app_state->initialized = true;
     }

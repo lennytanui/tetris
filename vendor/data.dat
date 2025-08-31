@@ -60,6 +60,12 @@
 }
 {
  id : 0
+ score : 1605
+ date : date
+ time : time
+}
+{
+ id : 0
  score : 1495
  date : date
  time : time
@@ -193,6 +199,12 @@
 {
  id : 0
  score : 575
+ date : date
+ time : time
+}
+{
+ id : 0
+ score : 460
  date : date
  time : time
 }

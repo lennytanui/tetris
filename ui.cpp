@@ -125,9 +125,7 @@ void Setup2dRendering(TextRendererManager *trm){
     SetUniformValue(u_projection_matrix, trm->projection_ortho);
 
     unsigned int u_resolution = GetUniformLocation(&basic_2d_shader, "u_resolution");
-    SetUniformValue(u_resolution, HMM_Vec2{(float)window_width, (float)window_height});
-    
-    printf("window_width %i \n", window_width);
+    SetUniformValue(u_resolution, HMM_Vec2{(float)global_window_width, (float)global_window_height});
     
     glGenVertexArrays(1, &vao2d);
     glGenBuffers(1, &vbo2d);

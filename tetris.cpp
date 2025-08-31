@@ -18,8 +18,8 @@
         moving right and left
     [X] check for new rows completed after a row everything shifts
         down
-    [] fix first pieces bug when it reaches down
-    [x] create scoring system
+    [X] fix first pieces bug when it reaches down
+    [X] create scoring system
     [] add options for 4 different resolutions including
         full screen
     [X] game over screen
@@ -93,9 +93,8 @@ Child_Block *current_blk = &global_parent.rotations[0];
 int parent_blk_index = 0;
 
 float move_amount = TILE_SIZE;
-v2 start_pos = {TILE_SIZE * 7, TILE_SIZE * 1};
-// start_pos.y + TILE_SIZE * (TILE_COUNT_Y - 2)
-v2 curr_pos = {start_pos.x + TILE_SIZE * 3, start_pos.y + TILE_SIZE * (TILE_COUNT_Y - 2)};
+v2 start_pos = {0};
+v2 curr_pos = {0};
 bool global_pause = false;
 bool global_game_over = false;
 bool global_show_leaderboard = false;
@@ -147,8 +146,8 @@ void SetCursorPosition(float x, float y){
     
     if(global_app_state){
         HMM_Vec4 cursor_pos = {x, y, 0.0f, 1.0f};
-        cursor_pos.X /= window_width * 0.5f;
-        cursor_pos.Y /= window_height * 0.5f;
+        cursor_pos.X /= global_window_width * 0.5f;
+        cursor_pos.Y /= global_window_height * 0.5f;
         
         cursor_pos.X -= 1.0f;
         cursor_pos.Y -= 1.0f;
@@ -504,10 +503,27 @@ void ResetParticleManager(ParticleManager *pm, v2 position){
     }
 }
 
+void Resize_UpdatePositions(){
+    v2 old_start_pos = {start_pos.x, start_pos.y};
+    
+    start_pos.x = global_window_width / 2.0f;
+    start_pos.x -= (TILE_SIZE * TILE_COUNT_X) / 2.0f;
+    start_pos.y = TILE_SIZE * 1;
+
+    v2 pos_diff = start_pos - old_start_pos;
+    curr_pos += pos_diff;
+}
+
+void UpdateTRM(){
+    Resize_UpdatePositions();
+    UpdateTextRendererDimensions(&trm, global_window_width, global_window_height);
+    global_app_state->proj = HMM_Orthographic_LH_NO(0.0f, global_window_width, 0.0f, global_window_height, 0.0f, 10.0f);
+}
+
 void draw(AppState *app_state, float dt){
     // draw background
     create_render_square(app_state,
-        v4{0.0f, 0.0f, 6.0f, 1.0f}, {(float)PROJ_RIGHT * 1.5f, (float)PROJ_TOP * 1.5f}, 
+        v4{0.0f, 0.0f, 6.0f, 1.0f}, {(float)global_window_width * 1.5f, (float)global_window_height * 1.5f}, 
         BACKGROUND_COLOR, BACKGROUND_COLOR);
 
     // draw the tiles
@@ -906,8 +922,13 @@ void draw(AppState *app_state, float dt){
 
 }
 
+
+
 void start(AppState *app_state){
     global_app_state = app_state;
+    Resize_UpdatePositions();
+    curr_pos = {start_pos.x + TILE_SIZE * 3, start_pos.y + TILE_SIZE * (TILE_COUNT_Y - 2)};
+
     global_show_menuboard = true;
     ReadDataFile(Create_String("data.dat"));
     for(int x = 0; x < TILE_COUNT_X; x++){
@@ -928,7 +949,7 @@ void start(AppState *app_state){
     global_wav_phase.load("assets/Retro Block Hit.wav");
     global_wav_move.load("assets/Click.wav");
 
-    SetupTextRenderer(&trm, PROJ_RIGHT, PROJ_TOP, app_state->window_width, app_state->window_height);
+    SetupTextRenderer(&trm, app_state->window_width, app_state->window_height);
     Setup2dRendering(&trm);
     im.window = window;
 
@@ -936,7 +957,7 @@ void start(AppState *app_state){
 }
 
 void update(AppState *app_state, float dt){
-
+    
 #if 0 // Fire Scene Updates
     fireScene.Update(app_state, dt);
     fireScene.Draw(app_state);
@@ -1102,7 +1123,7 @@ void update(AppState *app_state, float dt){
     String score_str = Create_String("SCORE : ");
     AddToString(&score_str, global_score);
     DrawText(&trm, score_str, 1.0f, 
-        {start_pos.x + (TILE_SIZE / 2.0f) * TILE_COUNT_X - TILE_SIZE * 2, PROJ_TOP - TILE_SIZE * 2}, 
+        {start_pos.x + (TILE_SIZE / 2.0f) * TILE_COUNT_X - TILE_SIZE * 2, global_window_height - TILE_SIZE * 2}, 
         {200.0f, 200.0f, 200.0f});
 #endif
 }

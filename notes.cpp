@@ -16,7 +16,7 @@ v2 cursorDim = {15.0f, 50.0f};
 RGBA cursorColor = {150.0f, 20.0f, 15.0f, 255.0f};
 
 v4 testSquarePos = {0.0f, 0.0f, 0.0f, 0.0f};
-v2 testSquareDim = {PROJ_RIGHT, PROJ_TOP};
+v2 testSquareDim = {0};
 RGBA testSquareClr = {60.0f, 60.0f, 60.0f, 255.0f};
 RGBA testSquareBrdClr = testSquareClr;
 
@@ -155,7 +155,9 @@ void NotesKeyPress(int key, int action){
 }
 
 void start(AppState *app_state){
-    SetupTextRenderer(&trm, PROJ_RIGHT, PROJ_TOP, app_state->window_width, app_state->window_height );
+    testSquareDim = {(float)app_state->window_width, (float)app_state->window_height};
+    
+    SetupTextRenderer(&trm, app_state->window_width, app_state->window_height );
     Setup2dRendering(&trm);
 
 

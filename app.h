@@ -2,8 +2,12 @@
 #include "HandmadeMath.h"
 #include "math.h"
 
-static int window_width = 780;
-static int window_height = 490;
+static int global_window_width = 1151;
+static int global_window_height = 1035;
+
+static int global_frame_buffer_width = 0;
+static int global_frame_buffer_height = 0;
+
 GLFWwindow *window = 0; // this is bad?
 
 #define CAMERA_NORMAL_POSITION {0.0f, 0.0f, 1.0f}
@@ -68,6 +72,15 @@ struct v4{
         float e[4];
     };
 };
+
+v2 operator-(v2 a, v2 b){
+    v2 result = {};
+
+    result.x = a.x - b.x;
+    result.y = a.y - b.y;
+
+    return result;
+}
 
 v2 operator+(v2 a, v2 b){
     v2 result = {};

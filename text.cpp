@@ -167,15 +167,26 @@ void AddFontFace(TextRendererManager *trm, const char* ttfFilePath, int fontHeig
     }
 }
 
-void SetupTextRenderer(TextRendererManager *trm, float proj_right, float proj_top, int window_width, int window_height){
+// Note: called at app_start and during resizing. MUST BE CALLED BY 'SetupTextRenderer'
+void UpdateTextRendererDimensions(TextRendererManager *trm, int window_width, int window_height){
+    trm->projection_ortho = HMM_Orthographic_RH_ZO(0.0f, window_width, 0.0f, window_height, 0.0f, 1.0f);
+    trm->window_width = window_width;
+    trm->window_height = window_height;
+
+    // update projection matrix uniform
+    glUseProgram(trm->shader.program);
+    trm->u_projection_matrix = GetUniformLocation(&trm->shader, "projection_matrix");
+
+    SetUniformValue(trm->u_projection_matrix, trm->projection_ortho);
+    
+    glUseProgram(0);
+}
+
+void SetupTextRenderer(TextRendererManager *trm, int window_width, int window_height){
     int error = FT_Init_FreeType( &trm->library );
     if(error != FT_Err_Ok){
         printf("ERROR: failed to initialize freetype\n");
     }
-
-    trm->projection_ortho = HMM_Orthographic_RH_ZO(0.0f, proj_right, 0.0f, proj_top, 0.0f, 1.0f);
-    trm->window_width = proj_right;
-    trm->window_height = proj_top;
 
     trm->facesIndex = 0;
     trm->facesCount = 4;
@@ -237,12 +248,14 @@ void SetupTextRenderer(TextRendererManager *trm, float proj_right, float proj_to
 
     // load text shader
     trm->shader.program = LoadShaders("assets/text_basic_vs.glsl", "assets/text_basic_fs.glsl");
+    
+    UpdateTextRendererDimensions(trm, window_width, window_height);
+
     glUseProgram(trm->shader.program);
+
     BindLocation(&trm->shader, 0, "position");
-    trm->u_projection_matrix = GetUniformLocation(&trm->shader, "projection_matrix");
     trm->u_text_color = GetUniformLocation(&trm->shader, "text_color");
 
-    SetUniformValue(trm->u_projection_matrix, trm->projection_ortho);
     SetUniformValue(trm->u_text_color, HMM_Vec3{255.0f, 0.0f, 0.0f});
     
     glGenVertexArrays(1, &trm->vao);
@@ -256,7 +269,6 @@ void SetupTextRenderer(TextRendererManager *trm, float proj_right, float proj_to
     glBindVertexArray(0);      
     glUseProgram(0);
 
-    int eof = 0;
 }
 
 void RenderText(TextRendererManager *trm, Text text, float scale, HMM_Vec3 color, HMM_Vec2 position){
