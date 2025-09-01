@@ -6,6 +6,9 @@ freetype-2.10.0/objs/*.obj
 freetype-2.10.0/objs/*.exe
 freetype-2.10.0/objs/*.lib
 freetype-2.10.0/objs/*.def
+freetype-2.10.0/objs/*.o
+freetype-2.10.0/objs/*.a
+
 glfw/CMake
 glfw/tests
 glfw/.github
