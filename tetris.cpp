@@ -108,7 +108,7 @@ int global_rotation_index = 0;
 
 Block_Info held_blck_parent = {};
 int can_hold = true;
-v2 held_blck_pos = {TILE_SIZE * 1, start_pos.y + TILE_SIZE * TILE_COUNT_Y - TILE_SIZE * 8};
+v2 held_blck_pos = {0};
 
 SoLoud::Soloud gSoloud; // SoLoud engine
 SoLoud::Wav gWave;      // One wave file
@@ -213,7 +213,7 @@ void FindFullLines(){
 
         // Update scor based on cleared lines
         if(cleared_lines == 4){
-            global_score += 800.0f;
+           global_score += 800.0f;
         } else if(cleared_lines >= 0 && cleared_lines < 4){
             global_score += 100 * cleared_lines + cleared_lines * 15.0f; 
         } else {
@@ -346,6 +346,8 @@ void move_tetromino(int key){
         case GLFW_KEY_SPACE:{
             global_time_to_next_move = 0.0f;
             global_phase_down = true;
+            
+            gSoloud.play(global_wav_phase);
             break;
         }
 
@@ -457,10 +459,10 @@ void SaveScore(int score){
     de.time = Create_String("time");
     de.date = Create_String("date");
     
-    AddToDataFile(Create_String("data.dat"), de);
+    AddToDataFile("data.dat", de);
 
     // sort the leader board
-    ReadDataResult rdr = ReadDataFile(Create_String("data.dat"));
+    ReadDataResult rdr = ReadDataFile("data.dat");
 
     int swapped = 1;
     while(swapped){
@@ -477,7 +479,7 @@ void SaveScore(int score){
         }
     }
 
-    WriteDataFile(Create_String("data.dat"), rdr.data, rdr.data_len, 1);
+    WriteDataFile("data.dat", rdr.data, rdr.data_len, 1);
 
     free(rdr.data);
 }
@@ -508,10 +510,17 @@ void Resize_UpdatePositions(){
     
     start_pos.x = global_window_width / 2.0f;
     start_pos.x -= (TILE_SIZE * TILE_COUNT_X) / 2.0f;
-    start_pos.y = TILE_SIZE * 1;
+    start_pos.y = global_window_height / 2.0f;
+    start_pos.y -= (TILE_SIZE * TILE_COUNT_Y) / 2.0f;
 
     v2 pos_diff = start_pos - old_start_pos;
     curr_pos += pos_diff;
+
+    held_blck_pos = {global_window_width / 2.0f, start_pos.y + TILE_SIZE * TILE_COUNT_Y - TILE_SIZE * 8};
+    held_blck_pos.x -= (TILE_SIZE * TILE_COUNT_X) / 2.0f;
+    held_blck_pos.x -= TILE_SIZE * 6;
+    // v2 held_blck_pos = {TILE_SIZE * 1, start_pos.y + TILE_SIZE * TILE_COUNT_Y - TILE_SIZE * 8};
+
 }
 
 void UpdateTRM(){
@@ -574,7 +583,7 @@ void draw(AppState *app_state, float dt){
         tile_pos.y = start_pos.y;
     }    
 
-    #if 0
+#if 0
      // draw the grid
     v2 tile_pos = start_pos;
 
@@ -624,7 +633,7 @@ void draw(AppState *app_state, float dt){
     }    
 #endif
 
-    // draw current block
+    // draw active block
     if(!global_show_menuboard || !global_show_leaderboard){
         for(int i = 0; i < 4; i++){
             v2 tile_pos = {
@@ -637,7 +646,7 @@ void draw(AppState *app_state, float dt){
                         global_parent.color, BORDER_CLR);
         }
 
-        // calculate current block "shadow" position
+        // calculate active block "shadow" position
         int current_blk_height = 0;
         float shadow_y = 0;
         for(int i = 0; i < 4; i++){
@@ -717,7 +726,7 @@ void draw(AppState *app_state, float dt){
             menu_position.y + menu_size.y - TILE_SIZE * 3.0f}, 
         {125.0f, 125.0f, 125.0f});
         
-        if(Button(AppQuit, &im, &trm,  Create_String("Quit"), 
+        if(Button((void *)AppQuit, &im, &trm,  Create_String("Quit"), 
             HMM_Vec2{menu_position.x + TILE_SIZE * 3, 
             menu_position.y + menu_size.y - TILE_SIZE * 7.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
@@ -725,21 +734,19 @@ void draw(AppState *app_state, float dt){
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
 
-        if(Button(draw, &im, &trm,  Create_String("Continue"), 
+        if(Button((void *)draw, &im, &trm,  Create_String("Continue"), 
             HMM_Vec2{menu_position.x + TILE_SIZE * 3, 
             menu_position.y + menu_size.y - TILE_SIZE * 9.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             global_pause = false;
         }
         
-        if(Button(draw, &im, &trm,  Create_String("Settings"), 
+        if(Button((void *)draw, &im, &trm,  Create_String("Settings"), 
             HMM_Vec2{menu_position.x + TILE_SIZE * 3, 
             menu_position.y + menu_size.y - TILE_SIZE * 11.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             global_pause = false;
         }
-    }else{
-        // draw particles
     }
 
     // draw game over
@@ -768,7 +775,7 @@ void draw(AppState *app_state, float dt){
             menu_position.y + menu_size.y - TILE_SIZE * 7.0f}, 
         {125.0f, 125.0f, 125.0f});
 
-        if(Button(AppQuit, &im, &trm,  Create_String("Menu"), 
+        if(Button((void *)AppQuit, &im, &trm,  Create_String("Menu"), 
             HMM_Vec2{menu_position.x + TILE_SIZE * 1, 
             menu_position.y + menu_size.y - TILE_SIZE * 9.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
@@ -776,7 +783,7 @@ void draw(AppState *app_state, float dt){
         }
 
 
-        if(Button(draw, &im, &trm,  Create_String("Restart"), 
+        if(Button((void *)draw, &im, &trm,  Create_String("Restart"), 
             HMM_Vec2{menu_position.x + TILE_SIZE * 1, 
             menu_position.y + menu_size.y - TILE_SIZE * 9.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
@@ -808,7 +815,7 @@ void draw(AppState *app_state, float dt){
         {125.0f, 125.0f, 125.0f});
 
         
-        ReadDataResult rdr = ReadDataFile(Create_String("data.dat"));
+        ReadDataResult rdr = ReadDataFile("data.dat");
         float y_pos = 5.0f;
 
         for(int i = 0; i < rdr.data_len; i++){
@@ -892,7 +899,7 @@ void draw(AppState *app_state, float dt){
                 global_show_menuboard = false;
         }
         
-        if(Button(&AppQuit, &im, &trm,  Create_String("Quit"), 
+        if(Button((void *)&AppQuit, &im, &trm,  Create_String("Quit"), 
             HMM_Vec2{menu_position.x + TILE_SIZE * 1, 
             menu_position.y + menu_size.y - TILE_SIZE * (y_pos + 4)}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
@@ -930,7 +937,7 @@ void start(AppState *app_state){
     curr_pos = {start_pos.x + TILE_SIZE * 3, start_pos.y + TILE_SIZE * (TILE_COUNT_Y - 2)};
 
     global_show_menuboard = true;
-    ReadDataFile(Create_String("data.dat"));
+    ReadDataFile("data.dat");
     for(int x = 0; x < TILE_COUNT_X; x++){
         for(int y = 0; y < TILE_COUNT_Y; y++){
             global_tetris_board.tiles[x][y].color = TILE_CLR;
@@ -1040,8 +1047,10 @@ void update(AppState *app_state, float dt){
             camera_shake_time_left = CAMERA_SHAKE_DURATION;
             global_phase_down = false;
         }
+
         global_wav_reached_down.stop();
-        gSoloud.play(global_wav_reached_down);
+        int h = gSoloud.play(global_wav_reached_down, 0.5f, 0.0, 1, 0);
+        gSoloud.setPause(h, 0);
     }
 
     // Tetris main calculations
@@ -1052,7 +1061,6 @@ void update(AppState *app_state, float dt){
                 curr_pos.y -= move_amount;
 
                 if(global_phase_down){
-                    gSoloud.play(global_wav_phase);
                     global_time_to_next_move = PHASE_TIME;
                 }else{
                     global_time_to_next_move = global_time_btw_moves;
@@ -1122,8 +1130,12 @@ void update(AppState *app_state, float dt){
     draw(app_state, dt);
     String score_str = Create_String("SCORE : ");
     AddToString(&score_str, global_score);
-    DrawText(&trm, score_str, 1.0f, 
-        {start_pos.x + (TILE_SIZE / 2.0f) * TILE_COUNT_X - TILE_SIZE * 2, global_window_height - TILE_SIZE * 2}, 
+
+    v2 score_pos = {start_pos.x + TILE_SIZE * (TILE_COUNT_X + 1), held_blck_pos.y + TILE_SIZE * 5.5f};
+    // score_pos.x += (TILE_SIZE.)
+    // start_pos.x + (TILE_SIZE / 2.0f) * TILE_COUNT_X - TILE_SIZE * 2
+
+    DrawText(&trm, score_str, 0.5f, {score_pos.x, score_pos.y}, 
         {200.0f, 200.0f, 200.0f});
 #endif
 }

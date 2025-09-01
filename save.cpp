@@ -38,10 +38,10 @@ int DE_SetChild(DataElement *de, String name, String value){
     return result;
 }
 
-ReadDataResult ReadDataFile(String file_path){
+ReadDataResult ReadDataFile(const char *file_path){
     ReadDataResult result = {};
     // read file
-    std::ifstream data_file(file_path.val);
+    std::ifstream data_file(file_path);
     if(data_file.is_open()){
         result.success = 1;
         int entries_count = 0;
@@ -118,19 +118,19 @@ ReadDataResult ReadDataFile(String file_path){
         data_file.close();
     }else{
         result.success = 0;
-        printf("Failed opened file %s \n", file_path.val);
+        printf("Failed opened file %s \n", file_path);
     }
     return result;
 } 
 
-void WriteDataFile(String file_path, DataElement *data, int data_len, int overwrite){
+void WriteDataFile(const char* file_path, DataElement *data, int data_len, int overwrite){
 
-    int over_write_flags = 0;
+    std::ios_base::openmode  over_write_flags = std::ios_base::out;
     if(overwrite){
         over_write_flags = std::ofstream::trunc;
     }
 
-    std::ofstream myfile (file_path.val, over_write_flags);
+    std::ofstream myfile (file_path, over_write_flags);
     if (myfile.is_open())
     {
         for(int i = 0; i < data_len; i++){
@@ -147,7 +147,7 @@ void WriteDataFile(String file_path, DataElement *data, int data_len, int overwr
     } 
 }
 
-void AddToDataFile(String file_path, DataElement de){
+void AddToDataFile(const char* file_path, DataElement de){
 
     ReadDataResult rdr = ReadDataFile(file_path);
     DataElement *temp_de = rdr.data;

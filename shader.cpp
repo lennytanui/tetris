@@ -6,7 +6,7 @@ struct Shader2{
     unsigned int program;
 };
 
-unsigned int GetUniformLocation(Shader2 *shader, char *name){
+unsigned int GetUniformLocation(Shader2 *shader, const char *name){
     unsigned int result = 0;
     result = glGetUniformLocation(shader->program, name);
     if(result == -1){
@@ -28,7 +28,7 @@ void SetUniformValue(unsigned int uniform_location, HMM_Vec2 value){
         glUniform2f(uniform_location, value.X, value.Y);
 }
 
-void BindLocation(Shader2 *shader, unsigned int location, char *value){
+void BindLocation(Shader2 *shader, unsigned int location, const char *value){
     glBindAttribLocation(shader->program, location, value);
 }
 

@@ -2,8 +2,8 @@
 #include "HandmadeMath.h"
 #include "math.h"
 
-static int global_window_width = 1151;
-static int global_window_height = 1035;
+static int global_window_width = 1920;
+static int global_window_height = 1080;
 
 static int global_frame_buffer_width = 0;
 static int global_frame_buffer_height = 0;
@@ -32,7 +32,7 @@ struct v2{
         float e[2];
     };
     
-    v2& operator+=(v2 &a){
+    v2& operator+=(const v2 a){
         this->x += a.x;
         this->y += a.y;
 

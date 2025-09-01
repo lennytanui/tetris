@@ -102,7 +102,7 @@ void RenderRectangles(AppState *app_state, float dt) {
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-        char *basic_vs_src = "#version 330 core \n"\
+        const char *basic_vs_src = "#version 330 core \n"\
                         "layout (location = 0) in vec4 aPos; \n"\
                         "layout (location = 1) in vec4 aColor; \n"\
                         "layout (location = 2) in vec2 aTexCoord; \n"\
@@ -123,7 +123,7 @@ void RenderRectangles(AppState *app_state, float dt) {
                             "border_clr = a_border_clr; \n"\
                         "} \n";
 
-        char *basic_fs_src = "#version 330 core \n"\
+        const char *basic_fs_src = "#version 330 core \n"\
                             "in vec2 texCoord; \n"\
                             "in vec4 color; \n"\
                             "in vec4 border_clr; \n"\
