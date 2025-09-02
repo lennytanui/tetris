@@ -84,7 +84,7 @@ struct ScoreDataManager{
     Score *scores;
 };
 
-AppState *global_app_state = 0;
+AppState global_app_state = {0};
 
 Tetris_Board global_tetris_board = {};
 
@@ -144,7 +144,7 @@ FireScene fireScene;
 
 void SetCursorPosition(float x, float y){
     
-    if(global_app_state){
+    if(global_app_state.initialized){
         HMM_Vec4 cursor_pos = {x, y, 0.0f, 1.0f};
         cursor_pos.X /= global_window_width * 0.5f;
         cursor_pos.Y /= global_window_height * 0.5f;
@@ -153,7 +153,7 @@ void SetCursorPosition(float x, float y){
         cursor_pos.Y -= 1.0f;
         cursor_pos.Y *= -1;
 
-        cursor_pos = HMM_InvGeneralM4(global_app_state->proj) * cursor_pos;
+        cursor_pos = HMM_InvGeneralM4(global_app_state.proj) * cursor_pos;
         
         im.cursorX = cursor_pos.X;
         im.cursorY = cursor_pos.Y;
@@ -526,7 +526,7 @@ void Resize_UpdatePositions(){
 void UpdateTRM(){
     Resize_UpdatePositions();
     UpdateTextRendererDimensions(&trm, global_window_width, global_window_height);
-    global_app_state->proj = HMM_Orthographic_LH_NO(0.0f, global_window_width, 0.0f, global_window_height, 0.0f, 10.0f);
+    global_app_state.proj = HMM_Orthographic_LH_NO(0.0f, global_window_width, 0.0f, global_window_height, 0.0f, 10.0f);
 }
 
 void draw(AppState *app_state, float dt){
@@ -932,7 +932,6 @@ void draw(AppState *app_state, float dt){
 
 
 void start(AppState *app_state){
-    global_app_state = app_state;
     Resize_UpdatePositions();
     curr_pos = {start_pos.x + TILE_SIZE * 3, start_pos.y + TILE_SIZE * (TILE_COUNT_Y - 2)};
 

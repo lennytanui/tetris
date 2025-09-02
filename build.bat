@@ -1,18 +1,7 @@
-@REM @echo off
-
-@REM if not exist .\build mkdir .\build
-
-@REM pushd .\build
-@REM cl ..\platform.cpp ..\glad.c -Z7 -I..\vendor\include -link -LIBPATH:..\vendor\libs^
-@REM  soloud_static_x64_d.lib glfw3dll.lib Gdi32.lib User32.lib Shell32.lib Opengl32.lib
-@REM popd
-
-
 @echo off
 
-
 @REM ENV (environment) can either be GNU, MSVC, or WEB
-set ENV= MSVC
+set ENV= GNU
 
 set makecall= mingw32-make
 
@@ -70,9 +59,9 @@ dir \b \s \a %FreeType_DIR% | findstr . > nul || (
 
 if %ENV% == WEB (
     @REM start  em++
-    WHERE em++ \Q
+    WHERE em++ -Q
     if ERRORLEVEL 1 (
-        @REM how do I if this fails?
+        @REM what I do I if this fails?
         echo Starting EM++
         echo NOTE : First time run may take some time
         call ..\emsdk\emsdk install latest
@@ -96,7 +85,7 @@ if %ENV% == WEB (
 echo --------------------- Building GLFW
 
 if %Skip% == true (
-    echo --------------------- GLFW Already Built
+    echo -------------------------------- GLFW Already Built
     GOTO skip_GLFW_build
 )
 
@@ -226,6 +215,11 @@ if not exist ".\vendor\libs_src\soloud20200207\src\build_gnu" (
     mkdir ".\vendor\libs_src\soloud20200207\src\build_gnu"
 )
 
+if not exist ".\vendor\libs_src\soloud20200207\src\build_web" (
+    echo "Creating `.\build_gnu` directory"
+    mkdir ".\vendor\libs_src\soloud20200207\src\build_web"
+)
+
 
 if %ENV% == MSVC (
     if exist ".\vendor\libs\soloud.lib" (
@@ -265,13 +259,31 @@ if %ENV% == GNU (
     popd
 )
 
+if %ENV% == WEB (
+    if exist ".\vendor\libs\libsoloud_em.a" (
+        GOTO skip_SOLOUD_build
+    )
+
+    pushd ".\vendor\libs_src\soloud20200207\src\build_web"
+
+    @REM Compile to Object Files
+    em++ -c -DWITH_MINIAUDIO -I..\..\include\ ..\audiosource\wav\*.cpp ..\audiosource\wav\*.c ..\backend\miniaudio\*.cpp ..\core\*.cpp
+
+    @REM Link Static Library from Object Files
+    ar rs libsoloud_em.a .\*.o
+
+    copy ".\libsoloud_em.a" "..\..\..\..\libs\libsoloud_em.a"
+    
+    popd
+)
+
 :skip_SOLOUD_build
 @REM ---------End of Soloud Build ----------------
 
 
 pushd ".\build"
 
-echo --------------------- Building Applicaton
+echo --------------------- Building Application
 
 if %ENV% == GNU (
     @REM Compiling with g++
@@ -287,27 +299,26 @@ if %ENV% == MSVC (
 )
 
 if %ENV% == WEB (
+    echo "Building for web"
     @REM Compiling with EM++
-    robocopy ..\vendor .\vendor  \E \NJH \NJS \NFL \NDL
-
+    robocopy ..\vendor\assets .\vendor\assets -E -NJH -NJS -NFL -NDL
     @REM em++ ..\main.cpp ..\app.cpp -I..\..\include -sFULL_ES3 -sUSE_GLFW=3 -lglfw -lGLESv2 -o eq.html^
     @REM  --preload-file .\vendor\web_v_shader.glsl --preload-file .\vendor\web_f_shader.glsl^
     @REM  --preload-file .\vendor\checker_board.png --preload-file .\vendor\thin\stall.obj^
     @REM  --preload-file .\vendor\thin\stallTexture.png --preload-file .\vendor\thin\dragon.obj^
     @REM  --preload-file .\vendor\white.png --preload-file .\vendor\cube.obj
      
-    @REM g++ -o platform.exe ..\platform.cpp ..\glad.c -I..\vendor\include -L..\vendor\libs -l:libglfw3.a -l:libfreetype.a^
-    @REM     -l:libsoloud.a -lGdi32 -lUser32 -lShell32 -lOpengl32
-
-    em++ ..\platform.cpp ..\glad.c -I..\include -sFULL_ES3 -sUSE_GLFW=3 -lglfw -lGLESv2 -o eq.html^
-     --preload-file .\vendor\assets\basic_2d_shader_fs.glsl --preload-file .\vendor\assets\basic_2d_shader_vs.glsl^
-     --preload-file .\vendor\assets\text_basic_fs.glsl --preload-file .\vendor\assets\text_basic_vs.glsl^
-     --preload-file .\vendor\assets\Click.wav --preload-file .\vendor\assets\container.jpg^
-     --preload-file .\vendor\assets\Future-Technology.mp3 --preload-file .\vendor\assets\Future-Technology.wav^
-     --preload-file .\vendor\assets\ImpactIntoSand.wav --preload-file .\vendor\assets\Retro_Block_Hit.mp3^
-     --preload-file .\vendor\assets\smooth_guitar.wav --preload-file .\vendor\assets\white_texture.jpg^
-     
-    popd
+    
+    emcc --use-port=contrib.glfw3 ..\platform.cpp ..\glad.c -I..\vendor\include -L..\vendor\libs -l:libfreetype_em.a^
+    -l:libsoloud_em.a -lglfw3 -sASSERTIONS=1 -sWASM=1 -sSAFE_HEAP=1 -sFULL_ES3=1 --shell-file .\shell.html -o eq.html
+    @REM --preload-file ..\vendor\assets@./
+    @REM  --preload-file .\vendor\assets\basic_2d_shader_fs.glsl --preload-file .\vendor\assets\basic_2d_shader_vs.glsl^
+    @REM  --preload-file .\vendor\assets\text_basic_fs.glsl --preload-file .\vendor\assets\text_basic_vs.glsl^
+    @REM  --preload-file .\vendor\assets\Click.wav --preload-file .\vendor\assets\container.jpg^
+    @REM  --preload-file .\vendor\assets\Future-Technology.mp3 --preload-file .\vendor\assets\Future-Technology.wav^
+    @REM  --preload-file .\vendor\assets\ImpactIntoSand.wav --preload-file .\vendor\assets\Retro_Block_Hit.wav^
+    @REM  --preload-file .\vendor\assets\smooth_guitar.wav --preload-file .\vendor\assets\white_texture.jpg
+    
 )
 
 popd

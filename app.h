@@ -8,6 +8,7 @@ static int global_window_height = 1080;
 static int global_frame_buffer_width = 0;
 static int global_frame_buffer_height = 0;
 
+
 GLFWwindow *window = 0; // this is bad?
 
 #define CAMERA_NORMAL_POSITION {0.0f, 0.0f, 1.0f}
