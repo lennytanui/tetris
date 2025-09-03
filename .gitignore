@@ -2,4 +2,5 @@
 .tmp.driveupload
 build
 vendor/libs
+vendor/libs_src/emsdk
 vendor/glfw3.dll

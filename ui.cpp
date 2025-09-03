@@ -113,7 +113,7 @@ void SetNotHot(InputManager *im){
 
 void Setup2dRendering(TextRendererManager *trm){
 
-    basic_2d_shader.program = LoadShaders("assets/basic_2d_shader_vs.glsl", "assets/basic_2d_shader_fs.glsl");
+    basic_2d_shader.program = LoadShaders("assets/basic_2d_shader_vs_web.glsl", "assets/basic_2d_shader_fs_web.glsl");
     glUseProgram(basic_2d_shader.program);
     BindLocation(&basic_2d_shader, 0, "position");
     BindLocation(&basic_2d_shader, 1, "color");

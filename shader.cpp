@@ -34,11 +34,7 @@ void BindLocation(Shader2 *shader, unsigned int location, const char *value){
 
 unsigned int LoadShader(GLenum shaderType, std::string path){
 
-    #ifdef __EMSCRIPTEN__
-    std::fstream shader_file("vendor/" + path);
-    #else
     std::fstream shader_file(path);
-    #endif
 
     if(!shader_file){
         std::cout << "Error loading shader file -- " << path << std::endl;
@@ -99,6 +95,7 @@ unsigned int LoadShaders(std::string v_shader_path, std::string f_shader_path){
         GLchar message[1024];
         glGetProgramInfoLog(result, 1024, &log_length, message);
         // Write the error to a log
+        printf("Failed to Link Program from ['%s', '%s'] \n\t With Error \n\t\t%s\n", &v_shader_path[0], &f_shader_path[0], message);
     }
 
     glDeleteShader(v_shader);

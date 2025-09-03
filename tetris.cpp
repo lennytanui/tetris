@@ -38,7 +38,7 @@
 #define TILE_COUNT_X 10
 #define TILE_COUNT_Y 18
 
-#define TILE_SIZE 50.0f
+#define TILE_SIZE 37.0f
 #define BORDER_CLR {72.0f, 79.0f, 72.0f, 0.0f}
 #define TILE_CLR {16.0f, 31.0f, 17.0f, 255.0f}
 #define BACKGROUND_COLOR {50.0f, 50.0f, 50.0f, 255.0f}
@@ -146,8 +146,8 @@ void SetCursorPosition(float x, float y){
     
     if(global_app_state.initialized){
         HMM_Vec4 cursor_pos = {x, y, 0.0f, 1.0f};
-        cursor_pos.X /= global_window_width * 0.5f;
-        cursor_pos.Y /= global_window_height * 0.5f;
+        cursor_pos.X /= global_frame_buffer_width * 0.5f;
+        cursor_pos.Y /= global_frame_buffer_height * 0.5f;
         
         cursor_pos.X -= 1.0f;
         cursor_pos.Y -= 1.0f;
@@ -508,33 +508,33 @@ void ResetParticleManager(ParticleManager *pm, v2 position){
 void Resize_UpdatePositions(){
     v2 old_start_pos = {start_pos.x, start_pos.y};
     
-    start_pos.x = global_window_width / 2.0f;
+    start_pos.x = global_frame_buffer_width / 2.0f;
     start_pos.x -= (TILE_SIZE * TILE_COUNT_X) / 2.0f;
-    start_pos.y = global_window_height / 2.0f;
+    start_pos.y = global_frame_buffer_height / 2.0f;
     start_pos.y -= (TILE_SIZE * TILE_COUNT_Y) / 2.0f;
 
     v2 pos_diff = start_pos - old_start_pos;
     curr_pos += pos_diff;
 
-    held_blck_pos = {global_window_width / 2.0f, start_pos.y + TILE_SIZE * TILE_COUNT_Y - TILE_SIZE * 8};
+    held_blck_pos = {global_frame_buffer_width / 2.0f, start_pos.y + TILE_SIZE * TILE_COUNT_Y - TILE_SIZE * 8};
     held_blck_pos.x -= (TILE_SIZE * TILE_COUNT_X) / 2.0f;
-    held_blck_pos.x -= TILE_SIZE * 6;
+    held_blck_pos.x -= TILE_SIZE * 5.0f;
     // v2 held_blck_pos = {TILE_SIZE * 1, start_pos.y + TILE_SIZE * TILE_COUNT_Y - TILE_SIZE * 8};
 
 }
 
-void UpdateTRM(){
+void UpdateDimensions(){
     Resize_UpdatePositions();
-    UpdateTextRendererDimensions(&trm, global_window_width, global_window_height);
-    global_app_state.proj = HMM_Orthographic_LH_NO(0.0f, global_window_width, 0.0f, global_window_height, 0.0f, 10.0f);
+    UpdateTextRendererDimensions(&trm, global_frame_buffer_width, global_frame_buffer_height);
+    global_app_state.proj = HMM_Orthographic_LH_NO(0.0f, global_frame_buffer_width, 0.0f, global_frame_buffer_height, 0.0f, 10.0f);
 }
 
 void draw(AppState *app_state, float dt){
     // draw background
     create_render_square(app_state,
-        v4{0.0f, 0.0f, 6.0f, 1.0f}, {(float)global_window_width * 1.5f, (float)global_window_height * 1.5f}, 
+        v4{0.0f, 0.0f, 6.0f, 1.0f}, {(float)global_frame_buffer_width * 1.5f, (float)global_frame_buffer_height * 1.5f}, 
         BACKGROUND_COLOR, BACKGROUND_COLOR);
-
+#if 1
     // draw the tiles
     v2 tile_pos = start_pos;
 
@@ -693,7 +693,7 @@ void draw(AppState *app_state, float dt){
         {held_blck_pos.x + TILE_SIZE * 1, held_blck_pos.y + TILE_SIZE * 5.5f}, 
         {125.0f, 125.0f, 125.0f});
     Render_Square *render_square = create_render_square(app_state,
-        {held_blck_pos.x, held_blck_pos.y, 1.0f, 1.0f}, {TILE_SIZE * 5, TILE_SIZE * 5}, 
+        {held_blck_pos.x, held_blck_pos.y, 1.0f, 1.0f}, {TILE_SIZE * 4, TILE_SIZE * 4}, 
             {70.0f, 70.0f, 70.0f, 255.0f}, {70.0f, 70.0f, 70.0f, 255.0f});
 
     // draw held block 
@@ -755,7 +755,7 @@ void draw(AppState *app_state, float dt){
             menu_size, 
         {60.0f, 60.0f, 60.0f, 255.0f}, {60.0f, 60.0f, 60.0f, 255.0f});
 
-        DrawText(&trm, Create_String("GAME OVER!"), 1.2f, 
+        DrawText(&trm, Create_String("GAME OVER!"), 0.9f, 
         {menu_position.x + TILE_SIZE * 1, 
             menu_position.y + menu_size.y - TILE_SIZE * 3.0f}, 
         {125.0f, 125.0f, 125.0f});
@@ -763,14 +763,14 @@ void draw(AppState *app_state, float dt){
         
         String high_score_str = Create_String("High Score : ");
         AddToString(&high_score_str, 555);
-        DrawText(&trm, high_score_str, 1.0f, 
+        DrawText(&trm, high_score_str, 0.8f, 
         {menu_position.x + TILE_SIZE * 1, 
             menu_position.y + menu_size.y - TILE_SIZE * 5.0f},
             {200.0f, 200.0f, 200.0f});
 
         String score_string = Create_String("SCORE - ");
         AddToString(&score_string, global_last_game_score);
-        DrawText(&trm, score_string, 0.9f, 
+        DrawText(&trm, score_string, 0.8f, 
         {menu_position.x + TILE_SIZE * 1, 
             menu_position.y + menu_size.y - TILE_SIZE * 7.0f}, 
         {125.0f, 125.0f, 125.0f});
@@ -926,15 +926,15 @@ void draw(AppState *app_state, float dt){
     //         }
     //     }
     // }
-
+#endif
 }
 
 
 
 void start(AppState *app_state){
+#if 1
     Resize_UpdatePositions();
     curr_pos = {start_pos.x + TILE_SIZE * 3, start_pos.y + TILE_SIZE * (TILE_COUNT_Y - 2)};
-
     global_show_menuboard = true;
     ReadDataFile("data.dat");
     for(int x = 0; x < TILE_COUNT_X; x++){
@@ -958,7 +958,7 @@ void start(AppState *app_state){
     SetupTextRenderer(&trm, app_state->window_width, app_state->window_height);
     Setup2dRendering(&trm);
     im.window = window;
-
+#endif
     // fireScene.Start();
 }
 

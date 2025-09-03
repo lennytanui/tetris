@@ -2,11 +2,11 @@
 #include "HandmadeMath.h"
 #include "math.h"
 
-static int global_window_width = 1920;
-static int global_window_height = 1080;
+static int global_window_width = 800;
+static int global_window_height = 800;
 
-static int global_frame_buffer_width = 0;
-static int global_frame_buffer_height = 0;
+static int global_frame_buffer_width = 800;
+static int global_frame_buffer_height = 800;
 
 
 GLFWwindow *window = 0; // this is bad?

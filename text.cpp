@@ -131,7 +131,7 @@ void AddFontFace(TextRendererManager *trm, const char* ttfFilePath, int fontHeig
             printf("ERROR: failed to initialize freetype -- %s -- Font Face. FORMAT NOT SUPPORTED.\n", ttfFilePath);
         } else if (error){
             // Could mean file could not be opened or read, or it is broken.
-            printf("ERROR: failed to initialize freetype -- %s -- Font Face.\n", ttfFilePath);
+            printf("ERROR: failed to initialize freetype -- %s -- Font Face. with Error %i\n", ttfFilePath, error);
         }else{
             newFace = &trm->faces[0];
         }
@@ -192,8 +192,8 @@ void SetupTextRenderer(TextRendererManager *trm, int window_width, int window_he
     trm->facesCount = 4;
     trm->faces = (FT_Face *)calloc(1, sizeof(FT_Face));
     // default font
-    AddFontFace(trm, "assets\\Passion_One\\PassionOne-Regular.ttf", 48);
-    // AddFontFace(trm, "static\\Antonio-Bold.ttf");
+    AddFontFace(trm, "assets/Passion_One/PassionOne-Regular.ttf", 48);
+    // AddFontFace(trm, "static/Antonio-Bold.ttf");
     
     trm->ctsCount = (unsigned int *)(calloc(1, sizeof(unsigned int)));
     trm->ctsCount[0] = 1;
@@ -217,10 +217,24 @@ void SetupTextRenderer(TextRendererManager *trm, int window_width, int window_he
         glGenTextures(1, &texture);
         glBindTexture(GL_TEXTURE_2D, texture);
 
+#if GLFW_PLATFORM_EMSCRIPTEN
         glTexImage2D(
             GL_TEXTURE_2D,
             0,
+            GL_R8,
+            trm->faces[0]->glyph->bitmap.width,
+            trm->faces[0]->glyph->bitmap.rows,
+            0,
             GL_RED,
+            GL_UNSIGNED_BYTE,
+            trm->faces[0]->glyph->bitmap.buffer
+        );
+        
+#else
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGB,
             trm->faces[0]->glyph->bitmap.width,
             trm->faces[0]->glyph->bitmap.rows,
             0,
@@ -229,12 +243,13 @@ void SetupTextRenderer(TextRendererManager *trm, int window_width, int window_he
             trm->faces[0]->glyph->bitmap.buffer
         );
 
+#endif
         // set texture options
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
+      
         Character *character = &trm->cts[0].characters[c];
         trm->cts[0].index++;
         character->textureID = texture;
@@ -247,7 +262,7 @@ void SetupTextRenderer(TextRendererManager *trm, int window_width, int window_he
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // load text shader
-    trm->shader.program = LoadShaders("assets/text_basic_vs.glsl", "assets/text_basic_fs.glsl");
+    trm->shader.program = LoadShaders("assets/text_basic_vs_web.glsl", "assets/text_basic_fs_web.glsl");
     
     UpdateTextRendererDimensions(trm, window_width, window_height);
 

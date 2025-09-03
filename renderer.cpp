@@ -4,6 +4,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "HandmadeMath.h"
+#include "shader.cpp"
 
 // #define PROJ_RIGHT 1920.0f
 // #define PROJ_TOP 1080.0f
@@ -101,85 +102,13 @@ void RenderRectangles(AppState *app_state, float dt) {
 
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+     
+#if GLFW_PLATFORM_EMSCRIPTEN
+        app_state->basic_sp = LoadShaders("assets/basic_shader_vs_web.glsl", "assets/basic_shader_fs_web.glsl");
 
-        const char *basic_vs_src = "#version 330 core \n"\
-                        "layout (location = 0) in vec4 aPos; \n"\
-                        "layout (location = 1) in vec4 aColor; \n"\
-                        "layout (location = 2) in vec2 aTexCoord; \n"\
-                        "layout (location = 3) in vec4 a_border_clr; \n"\
-
-                        "uniform mat4 u_view; \n" \
-                        "uniform mat4 u_projection; \n"
-
-                        "varying vec2 pos_; \n"\
-                        "out vec2 texCoord; \n"\
-                        "out vec4 color; \n"\
-                        "out vec4 border_clr; \n"\
-                        "void main() { \n"\
-                            "pos_ = aTexCoord; \n;"\
-                            "gl_Position = u_projection * u_view * vec4(aPos.x, aPos.y, aPos.z, aPos.w); \n"\
-                            "texCoord = aTexCoord; \n"\
-                            "color = aColor;\n" \
-                            "border_clr = a_border_clr; \n"\
-                        "} \n";
-
-        const char *basic_fs_src = "#version 330 core \n"\
-                            "in vec2 texCoord; \n"\
-                            "in vec4 color; \n"\
-                            "in vec4 border_clr; \n"\
-                            "in vec2 pos_; \n"\
-
-                            "uniform sampler2D testTexture; \n"\
-
-                            "out vec4 FragColor; \n"\
-                            "void main(){ \n"\
-                                "vec4 clr = color; \n"\
-
-                                "// if(gl_FragCoord.x > 205.0f){ \n" \
-                                "if (pos_.x <= 0.1f || pos_.x >= 0.9f){ \n"\
-                                    "clr = border_clr; \n"\
-                                "} else if (pos_.y <= 0.1f || pos_.y >= 0.9f) { \n"\
-                                    "clr = border_clr; \n"\
-                                "} \n"\
-
-                                "FragColor = clr * " \
-                                "texture(testTexture, texCoord); \n"\
-                            "} \n";
-        
-        
-        unsigned int basic_vs = 0;
-        basic_vs = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(basic_vs, 1, &basic_vs_src, NULL);
-        glCompileShader(basic_vs);
-
-        int success = 0;
-        char info_log[512];
-        glGetShaderiv(basic_vs, GL_COMPILE_STATUS, &success);
-
-        if(!success){
-            glGetShaderInfoLog(basic_vs, 512, NULL, info_log);
-            printf("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n %s \n", info_log);
-        }
-
-        unsigned int basic_fs;
-        basic_fs = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(basic_fs, 1, &basic_fs_src, NULL);
-        glCompileShader(basic_fs);
-
-        glGetShaderiv(basic_fs, GL_COMPILE_STATUS, &success);
-
-        if(!success){
-            glGetShaderInfoLog(basic_fs, 512, NULL, info_log);
-            printf("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n %s \n", info_log);
-        }
-        
-        app_state->basic_sp = glCreateProgram();
-        glAttachShader(app_state->basic_sp, basic_vs);
-        glAttachShader(app_state->basic_sp, basic_fs);
-        glLinkProgram(app_state->basic_sp);
-
-        glDeleteShader(basic_vs);
-        glDeleteShader(basic_fs);
+#else
+        app_state->basic_sp = LoadShaders("assets/basic_shader_vs.glsl", "assets/basic_shader_fs.glsl");
+#endif
 
         int width, height, nr_channels = 0;
         unsigned char *data = stbi_load("assets/white_texture.jpg",
@@ -191,15 +120,29 @@ void RenderRectangles(AppState *app_state, float dt) {
         glBindTexture(GL_TEXTURE_2D, 
             app_state->textures[(app_state->tex_count - 1)]);
 
+#if GLFW_PLATFORM_EMSCRIPTEN
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, 
             GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#else
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, 
+            GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#endif
 
         if (data){
+
+#if GLFW_PLATFORM_EMSCRIPTEN
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 
                 width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+#else
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 
+                width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+#endif
             glGenerateMipmap(GL_TEXTURE_2D);
         } else {
             printf("ERROR::LOADING TEXTURE");
@@ -207,7 +150,7 @@ void RenderRectangles(AppState *app_state, float dt) {
 
         stbi_image_free(data);
 
-        app_state->proj = HMM_Orthographic_LH_NO(0.0f, global_window_width, 0.0f, global_window_height, 0.0f, 10.0f);
+        app_state->proj = HMM_Orthographic_LH_NO(0.0f, global_frame_buffer_width, 0.0f, global_frame_buffer_height, 0.0f, 10.0f);
 
         app_state->initialized = true;
     }

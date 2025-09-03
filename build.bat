@@ -14,11 +14,6 @@ if not exist ".\build" (
     mkdir ".\build"
 )
 
-if not exist ".\build\vendor" (
-    echo "Creating `.\build\vendor` directory"
-    mkdir ".\build\vendor"
-)
-
 if not exist ".\vendor\libs" (
     echo "Creating `.\vendor\libs` directory"
     mkdir ".\vendor\libs"
@@ -290,36 +285,26 @@ if %ENV% == GNU (
    
     g++ -o platform.exe ..\platform.cpp ..\glad.c -I..\vendor\include -L..\vendor\libs -l:libglfw3.a -l:libfreetype.a^
         -l:libsoloud.a -lGdi32 -lUser32 -lShell32 -lOpengl32
+
+    popd
 )
 
 if %ENV% == MSVC (
     @REM Compiling with MSVC
     cl ..\platform.cpp ..\glad.c -Z7  -EHsc -I..\vendor\include -link -LIBPATH:..\vendor\libs^
         soloud.lib freetype.lib libglfw3.a Gdi32.lib User32.lib Shell32.lib Opengl32.lib
+
+    popd
 )
 
 if %ENV% == WEB (
     echo "Building for web"
-    @REM Compiling with EM++
-    robocopy ..\vendor\assets .\vendor\assets -E -NJH -NJS -NFL -NDL
-    @REM em++ ..\main.cpp ..\app.cpp -I..\..\include -sFULL_ES3 -sUSE_GLFW=3 -lglfw -lGLESv2 -o eq.html^
-    @REM  --preload-file .\vendor\web_v_shader.glsl --preload-file .\vendor\web_f_shader.glsl^
-    @REM  --preload-file .\vendor\checker_board.png --preload-file .\vendor\thin\stall.obj^
-    @REM  --preload-file .\vendor\thin\stallTexture.png --preload-file .\vendor\thin\dragon.obj^
-    @REM  --preload-file .\vendor\white.png --preload-file .\vendor\cube.obj
-     
-    
-    emcc --use-port=contrib.glfw3 ..\platform.cpp ..\glad.c -I..\vendor\include -L..\vendor\libs -l:libfreetype_em.a^
-    -l:libsoloud_em.a -lglfw3 -sASSERTIONS=1 -sWASM=1 -sSAFE_HEAP=1 -sFULL_ES3=1 --shell-file .\shell.html -o eq.html
-    @REM --preload-file ..\vendor\assets@./
-    @REM  --preload-file .\vendor\assets\basic_2d_shader_fs.glsl --preload-file .\vendor\assets\basic_2d_shader_vs.glsl^
-    @REM  --preload-file .\vendor\assets\text_basic_fs.glsl --preload-file .\vendor\assets\text_basic_vs.glsl^
-    @REM  --preload-file .\vendor\assets\Click.wav --preload-file .\vendor\assets\container.jpg^
-    @REM  --preload-file .\vendor\assets\Future-Technology.mp3 --preload-file .\vendor\assets\Future-Technology.wav^
-    @REM  --preload-file .\vendor\assets\ImpactIntoSand.wav --preload-file .\vendor\assets\Retro_Block_Hit.wav^
-    @REM  --preload-file .\vendor\assets\smooth_guitar.wav --preload-file .\vendor\assets\white_texture.jpg
-    
+   
+    em++ --use-port=contrib.glfw3  ..\platform.cpp ..\glad.c -I..\vendor\include -L..\vendor\libs -l:libfreetype_em.a^
+        -l:libsoloud_em.a -lglfw3 -sEXPORTED_FUNCTIONS="['_main', '_malloc']" -sEXPORTED_RUNTIME_METHODS="['HEAPF32']" -sALLOW_MEMORY_GROWTH -sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE='$ccall'^
+        -sASSERTIONS=1 -sNO_EXIT_RUNTIME=0 -sWASM=1 -sSAFE_HEAP=1 -sFULL_ES3=1 -sUSE_WEBGL2=1 --shell-file .\shell.html -o main.html^
+        --preload-file ..\vendor\assets@.\assets --preload-file ..\vendor\data.dat@.\
+        
+    popd
 )
-
-popd
 
