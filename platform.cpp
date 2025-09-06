@@ -133,6 +133,8 @@ void renderFrame(GLFWwindow *iWindow)
 }
 #endif
 
+static int frameCount = 0;
+static float frameTime = 0.0f;
 //! The main loop (called by emscripten for each frame)
 void main_loop(void *)
 {
@@ -141,7 +143,6 @@ void main_loop(void *)
     /* Poll for and process events */
     glfwPollEvents();
     
-    static int frameCount = 0;
 
 #if GLFW_PLATFORM_EMSCRIPTEN
     int w,h; 
@@ -185,7 +186,15 @@ void main_loop(void *)
         emscripten_cancel_main_loop();
         #endif
     }
-    printf("DT: %f\n", global_delta_time * 1000);
+
+    frameCount++;
+    if(frameTime >= 1.0f){
+        printf("FPS : %i\n", frameCount);
+        frameCount = 0;
+        frameTime = 0;
+    }else{
+        frameTime += global_delta_time;
+    }
     global_delta_time = glfwGetTime() - global_start_time;
 }
 
@@ -268,8 +277,8 @@ int main(void) {
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetCharCallback(window, character_callback);
 
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+    // glEnable(GL_DEPTH_TEST);
+    // glDepthFunc(GL_LESS);
     
     app_start(&global_app_state);
     

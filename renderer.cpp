@@ -90,7 +90,10 @@ void RenderRectangles(AppState *app_state, float dt) {
         
         unsigned int indices[] = {
             0, 1, 3, // first triangle
-            1, 2, 3  // second triangle
+            1, 2, 3,  // second triangle
+
+            4, 5, 7, // first triangle
+            5, 6, 7  // second triangle
         };
 
         glGenBuffers(1, &app_state->basic_ebo);
@@ -178,6 +181,12 @@ void RenderRectangles(AppState *app_state, float dt) {
     unsigned int view_loc = glGetUniformLocation(app_state->basic_sp, "u_view");
     glUniformMatrix4fv(view_loc, 1, GL_FALSE, &app_state->view[0][0]);
 
+    int bufferSize = 56;
+    float *batchedVertices = (float *)malloc(bufferSize * app_state->render_squares_count * sizeof(float));
+    int batchedIndex = 0;
+
+    unsigned int *batchedIndices = (unsigned int *)malloc(6 * app_state->render_squares_count * sizeof(unsigned int));
+
     for(int i = 0; i < app_state->render_squares_count; i++){
         Render_Square *render_square = app_state->render_squares[i];
         v4 pos = render_square->position;
@@ -195,49 +204,71 @@ void RenderRectangles(AppState *app_state, float dt) {
         
         v2 size = render_square->dimensions;
 
-        float vertices[] = {
+        float vertices[56] = {
              // positions                                 // color                    // texture coords     // border color
              pos.x + size.x,  pos.y + size.y,   pos.z, pos.w,     clr.r, clr.g, clr.b, clr.a,     1.0f, 1.0f,       b_clr.r, b_clr.g, b_clr.b, b_clr.a,  // top right
              pos.x + size.x,  pos.y,            pos.z, pos.w,     clr.r, clr.g, clr.b, clr.a,     1.0f, 0.0f,       b_clr.r, b_clr.g, b_clr.b, b_clr.a,  // bottom right
              pos.x,           pos.y,            pos.z, pos.w,     clr.r, clr.g, clr.b, clr.a,     0.0f, 0.0f,       b_clr.r, b_clr.g, b_clr.b, b_clr.a,  // bottom left
              pos.x,           pos.y + size.y,   pos.z, pos.w,     clr.r, clr.g, clr.b, clr.a,     0.0f, 1.0f,       b_clr.r, b_clr.g, b_clr.b, b_clr.a  // top left
         };
-    
-        glBindVertexArray(app_state->basic_vao);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 
-            app_state->basic_ebo);
-        
-        unsigned int b = 0;
-        glGenBuffers(1, &b);
-        glBindBuffer(GL_ARRAY_BUFFER, b);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), 
-            vertices, GL_STATIC_DRAW);        
 
-        // describe the data in the buffer
-        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 14 * sizeof(float), 
-            (void*)0); // aPos
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 14 * sizeof(float), 
-            (void*)(4 * sizeof(float))); // aColor
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), 
-            (void*)(8 * sizeof(float))); // aTexCoord
-        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 14 * sizeof(float), 
-            (void*)(10 * sizeof(float))); // a_border_clr
+        int indices[6] = {
+            0 + batchedIndex * 4, 1 + batchedIndex * 4, 3 + batchedIndex * 4, // first triangle
+            1 + batchedIndex * 4, 2 + batchedIndex * 4, 3 + batchedIndex * 4,  // second triangle
+        };
 
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-        glEnableVertexAttribArray(2);
-        glEnableVertexAttribArray(3);
+        for(int j = 0; j < bufferSize; j++){
+            batchedVertices[bufferSize * batchedIndex + j] = vertices[j];
+        }
 
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        for(int j = 0; j < 6; j++){
+            batchedIndices[6 * batchedIndex + j] = indices[j];
+        }
 
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-        glDeleteBuffers(1, &b);
+        batchedIndex += 1;   
     }
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 
+        app_state->basic_ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * app_state->render_squares_count * sizeof(float), 
+        batchedIndices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glBindVertexArray(app_state->basic_vao);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 
+        app_state->basic_ebo);
     
+    unsigned int b = 0;
+    glGenBuffers(1, &b);
+    glBindBuffer(GL_ARRAY_BUFFER, b);
+    glBufferData(GL_ARRAY_BUFFER, bufferSize * app_state->render_squares_count * sizeof(float), 
+        batchedVertices, GL_STATIC_DRAW);        
+
+    // describe the data in the buffer
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 14 * sizeof(float), 
+        (void*)0); // aPos
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 14 * sizeof(float), 
+        (void*)(4 * sizeof(float))); // aColor
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), 
+        (void*)(8 * sizeof(float))); // aTexCoord
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 14 * sizeof(float), 
+        (void*)(10 * sizeof(float))); // a_border_clr
+
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
+
+    glDrawElements(GL_TRIANGLES, 6 * app_state->render_squares_count, GL_UNSIGNED_INT, 0);
+   
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glDeleteBuffers(1, &b);
+
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_BLEND);
     glUseProgram(0);
+    free(batchedVertices);
 
     for(int i = 0; i < app_state->render_squares_count; i++){
         Render_Square *render_square = app_state->render_squares[i];

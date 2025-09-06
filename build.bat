@@ -1,7 +1,7 @@
 @echo off
 
 @REM ENV (environment) can either be GNU, MSVC, or WEB
-set ENV= GNU
+set ENV= WEB
 
 set makecall= mingw32-make
 
@@ -59,8 +59,8 @@ if %ENV% == WEB (
         @REM what I do I if this fails?
         echo Starting EM++
         echo NOTE : First time run may take some time
-        call ..\emsdk\emsdk install latest
-        call ..\emsdk\emsdk activate latest
+        call .\vendor\libs_src\emsdk\emsdk install latest
+        call .\vendor\libs_src\emsdk\emsdk activate latest
         call "..\emsdk\emsdk_env.bat"
     )
 )
