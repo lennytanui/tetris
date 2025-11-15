@@ -300,9 +300,11 @@ if %ENV% == MSVC (
 if %ENV% == WEB (
     echo "Building for web"
    
-    em++ --use-port=contrib.glfw3  ..\platform.cpp ..\glad.c -I..\vendor\include -L..\vendor\libs -l:libfreetype_em.a^
-        -l:libsoloud_em.a -lglfw3 -sEXPORTED_FUNCTIONS="['_main', '_malloc']" -sEXPORTED_RUNTIME_METHODS="['HEAPF32']" -sALLOW_MEMORY_GROWTH -sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE='$ccall'^
-        -sASSERTIONS=1 -sNO_EXIT_RUNTIME=0 -sWASM=1 -sSAFE_HEAP=1 -sFULL_ES3=1 -sUSE_WEBGL2=1 --shell-file .\shell.html -o main.html^
+    em++ --use-port=contrib.glfw3 -sUSE_GLFW=3 ..\platform.cpp ..\glad.c -I..\vendor\include -L..\vendor\libs -l:libfreetype_em.a^
+        -l:libsoloud_em.a -lopenal  -sEXPORTED_FUNCTIONS="['_main', '_malloc']" -sEXPORTED_RUNTIME_METHODS="['HEAPF32']" -sALLOW_MEMORY_GROWTH -sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE='$ccall'^
+        -sASSERTIONS=1 -sNO_EXIT_RUNTIME=0^
+        -sWASM=1 -sSAFE_HEAP=1 -sFULL_ES3=1^
+        -sUSE_WEBGL2=1 --shell-file .\shell.html -o main.html^
         --preload-file ..\vendor\assets@.\assets --preload-file ..\vendor\data.dat@.\
         
     popd

@@ -948,7 +948,7 @@ void start(AppState *app_state){
     app_state->cam_pos = CAMERA_NORMAL_POSITION;
     gSoloud.init(); // Initialize SoLoud
     gWave.load("assets/Future-Technology.wav"); // Load a wave
-    // gSoloud.play(gWave); // Play the wave
+    gSoloud.play(gWave); // Play the wave
     gWave.setLooping(1);
 
     global_wav_reached_down.load("assets/ImpactIntoSand.wav");
@@ -1129,6 +1129,47 @@ void update(AppState *app_state, float dt){
     draw(app_state, dt);
     String score_str = Create_String("SCORE : ");
     AddToString(&score_str, global_score);
+    
+    String framet_str = Create_String("DT : ");
+    String fps_str = Create_String("FPS : ");
+    
+    static float framet_val_avg_updated = dt; 
+    static float framet_val_avg = dt; 
+    static int framet_val_count = 1;
+    static float time_to_update_fps = 0;
+
+    static int fps_count_avg = 0;
+    static int fps_count = 0;
+
+    if(time_to_update_fps >= 1){
+        framet_val_avg_updated = framet_val_avg;
+        fps_count_avg = fps_count;
+
+        time_to_update_fps = 0;
+        framet_val_count = 0;
+        framet_val_avg = 0;
+        
+        fps_count = 0;
+    }else{
+        framet_val_avg *= framet_val_count;
+        framet_val_count++;
+        framet_val_avg += dt;
+        framet_val_avg /= framet_val_count;
+
+        time_to_update_fps += dt;
+        fps_count += 1;
+    }
+    AddToString(&framet_str, framet_val_avg_updated * 10 * 10 * 10);
+    AddToString(&fps_str, fps_count_avg);
+    
+    v2 framet_pos = {start_pos.x + TILE_SIZE * (TILE_COUNT_X + 1), held_blck_pos.y + TILE_SIZE * 2.5f};
+    v2 fps_pos = {start_pos.x + TILE_SIZE * (TILE_COUNT_X + 1), held_blck_pos.y + TILE_SIZE * 0.5f};
+
+    DrawText(&trm, framet_str, 0.5f, {framet_pos.x, framet_pos.y}, 
+        {200.0f, 200.0f, 200.0f});
+        
+    DrawText(&trm, fps_str, 0.5f, {fps_pos.x, fps_pos.y}, 
+        {200.0f, 200.0f, 200.0f});
 
     v2 score_pos = {start_pos.x + TILE_SIZE * (TILE_COUNT_X + 1), held_blck_pos.y + TILE_SIZE * 5.5f};
     // score_pos.x += (TILE_SIZE.)
@@ -1137,6 +1178,8 @@ void update(AppState *app_state, float dt){
     DrawText(&trm, score_str, 0.5f, {score_pos.x, score_pos.y}, 
         {200.0f, 200.0f, 200.0f});
 #endif
+
+    glFinish();
 }
 
 };

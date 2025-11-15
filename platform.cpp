@@ -1,5 +1,8 @@
 #include <stdio.h>
+
+#if WIN32
 #include <glad/glad.h>
+#endif
 
 #ifdef _WIN32
 #include <GLFW/glfw3.h>
@@ -18,7 +21,6 @@
 int global_running = 1;
 
 float global_delta_time = 1.0f;
-float global_start_time = 0.0f;
 
 static void window_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -99,7 +101,7 @@ static void cursor_position_callback(GLFWwindow* window, double xpos, double ypo
 //! Display error message in the Console
 void consoleErrorHandler(int iErrorCode, char const *iErrorMessage)
 {
-    printf("glfwError: %d | %s\n", iErrorCode, iErrorMessage);
+    printf("GLFW Error: %i | %s\n", iErrorCode, iErrorMessage);
 }
 
 #if GLFW_PLATFORM_EMSCRIPTEN
@@ -133,13 +135,13 @@ void renderFrame(GLFWwindow *iWindow)
 }
 #endif
 
-static int frameCount = 0;
-static float frameTime = 0.0f;
+static float global_start_time = 0.0f;
 //! The main loop (called by emscripten for each frame)
-void main_loop(void *)
+void main_loop()
 {
+    
+    glfwMakeContextCurrent(window);
     /* Loop until the user closes the window */
-    float global_start_time = glfwGetTime();
     /* Poll for and process events */
     glfwPollEvents();
     
@@ -149,33 +151,16 @@ void main_loop(void *)
     glfwGetWindowSize(window, &w, &h);
     int fw,fh; 
     glfwGetFramebufferSize(window, &fw, &fh);
-
-    // printf("Window Size [%i, %i]\n", w, h);
-    // printf("Frame Size  [%i, %i]\n", global_window_width, global_window_height);
-    
-    // double mx,my; 
-    // glfwGetCursorPos(window, &mx, &my);
-    
-    // double fbX = mx * ((double)fw / w);
-    // double fbY = my * ((double)fh / h);
-    // SetCursorPosition((float)mx, (float)my);
-    // printf("Cursor Pos  [%f, %f]\n", fbX, fbY);
 #endif
 
     /* Render here */
-    // glViewport(0, 0, global_frame_buffer_width, global_frame_buffer_height);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(1.0f, 0.0f, 0.0f, 255.0f);
     RenderRectangles(&global_app_state, global_delta_time);
     app_update(&global_app_state, global_delta_time);
-
-#if _WIN32
-    /* Swap front and back buffers */
     glfwSwapBuffers(window);
-#endif
-    // printf("updating!\n");
-    
+
     if(glfwWindowShouldClose(window)){
         // done => terminating
         global_running = false;
@@ -187,15 +172,9 @@ void main_loop(void *)
         #endif
     }
 
-    frameCount++;
-    if(frameTime >= 1.0f){
-        printf("FPS : %i\n", frameCount);
-        frameCount = 0;
-        frameTime = 0;
-    }else{
-        frameTime += global_delta_time;
-    }
     global_delta_time = glfwGetTime() - global_start_time;
+    
+    global_start_time = glfwGetTime();
 }
 
 int main(void) {
@@ -204,7 +183,7 @@ int main(void) {
 #if GLFW_PLATFORM_EMSCRIPTEN
     // set a callback for errors otherwise if there is a problem, we won't know
     glfwSetErrorCallback(consoleErrorHandler);
-
+    glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_EMSCRIPTEN);
 #endif
 
     printf("GLFW VERSION %s\n", glfwGetVersionString());
@@ -215,9 +194,12 @@ int main(void) {
     }
     
 #if GLFW_PLATFORM_EMSCRIPTEN
-
+    glfwDefaultWindowHints();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    
+    // make it not Hi DPI Aware (simplify rendering code a bit)
+    glfwWindowHint(GLFW_SCALE_FRAMEBUFFER, GLFW_TRUE);
 
     global_window_width = 800;
     global_window_height = 800;
@@ -226,11 +208,6 @@ int main(void) {
 
     // print the Emscripten version on the console
     printf("emscripten: v%d.%d.%d\n", __EMSCRIPTEN_major__, __EMSCRIPTEN_minor__, __EMSCRIPTEN_tiny__);
-    
-    // make it not Hi DPI Aware (simplify rendering code a bit)
-    glfwWindowHint(GLFW_SCALE_FRAMEBUFFER, GLFW_TRUE);
-    // setting the association window <-> canvas
-    emscripten::glfw3::SetNextWindowCanvasSelector("#canvas");
     
     // setting the association window <-> canvas
     emscripten_glfw_set_next_window_canvas_selector("#canvas");
@@ -250,17 +227,15 @@ int main(void) {
         glfwTerminate();
         return -1;
     }
+    int error_point = glfwGetError(0);
+    printf("(1) Possible error %i\n", error_point);
+
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
-    
+    error_point = glfwGetError(0);
+    printf("(2) Possible error %i\n", error_point);
 
 #if GLFW_PLATFORM_EMSCRIPTEN
-
-    if (!gladLoadGLES2Loader((GLADloadproc) glfwGetProcAddress)) {
-        printf("Failed to initialize OpenGL context \n");
-        return -1;
-    }
-
     printf("GL ES VERSION %s\n", glGetString(GL_VERSION));
 #endif
 
@@ -276,7 +251,7 @@ int main(void) {
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetCharCallback(window, character_callback);
-
+    glfwWindowHint(GLFW_SAMPLES, 0); // Disable multisampling if not needed
     // glEnable(GL_DEPTH_TEST);
     // glDepthFunc(GL_LESS);
     
@@ -296,12 +271,12 @@ int main(void) {
     Tetris::UpdateDimensions();
 
     // tell emscripten to use "main_loop" as the main loop (window is user data)
-    emscripten_set_main_loop_arg(main_loop, window, 0, GLFW_FALSE);
+    emscripten_set_main_loop(main_loop, 0, false);
 #else
 
 #if _WIN32
     while (global_running) {
-        main_loop(nullptr);
+        main_loop();
     }
     AppQuit(&global_app_state);
 #endif

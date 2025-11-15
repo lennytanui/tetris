@@ -42,6 +42,8 @@ void app_start(AppState *app_state){
     }
 }
 
+v2 test_pos = v2{400.0f, 400.0f};
+float dir = 1.0f;
 void app_update(AppState *app_state, float dt){
     
     app_state->window_width = global_window_width;
@@ -50,6 +52,21 @@ void app_update(AppState *app_state, float dt){
     if(currentApp == TETRIS){
         Tetris::update(app_state, dt);
         Tetris::draw(app_state, dt);
+        create_render_square(app_state,
+        v4{0.0f, 0.0f, 6.0f, 1.0f}, {(float)global_frame_buffer_width * 1.5f, (float)global_frame_buffer_height * 1.5f}, 
+        BACKGROUND_COLOR, BACKGROUND_COLOR);
+
+        create_render_square(app_state,
+        v4{test_pos.x, test_pos.y, 7.0f, 1.0f}, {50.0f, 50.0f}, 
+        RGBA{175.0f, 175.0f, 0.0f, 255.0f}, RGBA{175.0f, 175.0f, 0.0f, 255.0f});
+        
+        if(test_pos.x >= global_frame_buffer_width - 50.0f){
+            dir = -1;
+        }else if(test_pos.x <= 0.0f){
+            dir = 1;
+        }
+        
+        test_pos.x += dir * 120.0f * dt;
     } else if(currentApp == NOTES){
         Notes::update(app_state, dt);
         Notes::draw(app_state);
