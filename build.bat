@@ -297,6 +297,9 @@ if %ENV% == MSVC (
     popd
 )
 
+popd
+
+pushd ".\web_build"
 if %ENV% == WEB (
     echo "Building for web"
    
@@ -306,7 +309,6 @@ if %ENV% == WEB (
         -sWASM=1 -sSAFE_HEAP=1 -sFULL_ES3=1^
         -sUSE_WEBGL2=1 --shell-file .\shell.html -o main.html^
         --preload-file ..\vendor\assets@.\assets --preload-file ..\vendor\data.dat@.\
-        
-    popd
 )
+popd
 

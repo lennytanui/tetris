@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="EN-us">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+
+  <title>Lennys Canvas</title>
+
+  <style>
+
+    body{
+      font-family: "Roboto", sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    div.container-flex{
+      display: flex;
+      padding: 1em;
+    }
+
+    div.container-flex div#about_section{
+      width: max-content;
+      /* flex-grow: 0; */
+      flex-shrink: 0;
+    }
+
+
+    table {
+        border-collapse: collapse;
+        width: 80%;
+        margin-top: 20px;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+
+    ul  {
+      list-style-type: none;
+      padding-inline-start: 0;
+    }
+
+    #canvas-container {
+      width: 80vh;
+      min-width: 650px;
+      height: 80vh;
+      min-height: 650px;
+      margin: auto;
+      padding: 5px;
+      border: 1px solid black;
+    }
+
+    #canvas {
+      margin: 0;
+      padding: 0;
+      display: block; /* This is VERY important */
+    }
+
+    #canvas:focus {
+      outline: none;
+    }
+
+    #canvas-button {
+      text-align: center;
+      padding-top: 1em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-flex">
+    <div id="about_section" class="box">
+      <h1>Tetris Clone</h1>
+      <table>
+        <thead>
+            <tr>
+                <th>Technology</th>
+                <th>Role in Project</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>C++</strong></td>
+                <td>Programming Language</td>
+            </tr>
+            <tr>
+                <td><strong>OpenGL ES 3.0</strong></td>
+                <td>Graphics Rendering API</td>
+            </tr>
+            <tr>
+                <td><strong>Emscripten</strong></td>
+                <td>Porting From Desktop Version to Web</td>
+            </tr>
+            <tr>
+                <td><strong>GLFW</strong></td>
+                <td>Window Creation and User Inputs</td>
+            </tr>
+            <tr>
+                <td><strong>GLAD</strong></td>
+                <td>Used On Desktop Version to Load OpenGL Functions</td>
+            </tr>
+        </tbody>
+      </table>
+      
+      <br>
+
+      <p>View Source Code <a href="https://github.com/lennytanui/tetris.git">Here</a></p>
+      
+      <br>
+
+      <h2>How To Play</h2>
+
+      <ul>
+        <li>
+          <p><strong>WASD</strong> or <strong>Arrow Keys</strong> to Rotate and Move Piece Around</p>
+          <p><strong>SPACEBAR</strong> to Zoom Down</p>
+          <p><strong>C</strong> to Hold Piece</p>
+        </li>
+      </ul>
+    </div>
+    
+    <div class="box" id="canvas-container">
+      <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+    </div>
+  </div>
+
+  <script>
+    var Module = {};
+  </script>
+  {{{ SCRIPT }}}
+</body>
+</html>

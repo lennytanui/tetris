@@ -176,12 +176,12 @@ int main(void) {
     // setting the association window <-> canvas
     emscripten_glfw_set_next_window_canvas_selector("#canvas");
 
-    window = glfwCreateWindow(global_window_width, global_window_height, "Tetris", nullptr, nullptr);
+    window = glfwCreateWindow(global_window_width, global_window_height, "Lennys Canvas", nullptr, nullptr);
 #else
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(global_window_width, global_window_height, "Tetris", NULL, NULL);
+    window = glfwCreateWindow(global_window_width, global_window_height, "Lennys Canvas", NULL, NULL);
 
 #endif
 
