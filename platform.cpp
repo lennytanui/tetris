@@ -19,7 +19,6 @@
 #include "app.cpp"
 
 int global_running = 1;
-
 float global_delta_time = 1.0f;
 
 static void window_size_callback(GLFWwindow* window, int width, int height)
@@ -104,45 +103,12 @@ void consoleErrorHandler(int iErrorCode, char const *iErrorMessage)
     printf("GLFW Error: %i | %s\n", iErrorCode, iErrorMessage);
 }
 
-#if GLFW_PLATFORM_EMSCRIPTEN
-//! jsRenderFrame: for the sake of this example, uses the canvas2D api to change the color of the screen / display a message
-EM_JS(void, jsRenderFrame, (GLFWwindow *glfwWindow, int w, int h, int fw, int fh, double mx, double my, int color, bool isFullscreen), {
-    const ctx = Module['glfwGetCanvas'](glfwWindow).getContext('2d');
-    ctx.fillStyle = `rgb(${color}, ${color}, ${color})`;
-    ctx.fillRect(0, 0, fw, fh); // using framebuffer width/height
-    const text = `${w}x${h} | ${mx}x${my} | CTRL+Q to terminate ${isFullscreen ? "" : '| CTRL+F for fullscreen'}`;
-    ctx.font = '15px monospace';
-    ctx.fillStyle = `rgb(${255 - color}, 0, 0)`;
-    ctx.fillText(text, 10 + color, 20 + color);
-})
-#endif
-
-#if GLFW_PLATFORM_EMSCRIPTEN
-//! Called for each frame
-void renderFrame(GLFWwindow *iWindow)
-{
-    static int frameCount = 0;
-
-    // poll events
-    glfwPollEvents();
-    printf("Frame Count %i\n", frameCount);
-    int w,h; glfwGetWindowSize(iWindow, &w, &h);
-    int fw,fh; glfwGetFramebufferSize(iWindow, &fw, &fh);
-    double mx,my; 
-    glfwGetCursorPos(iWindow, &mx, &my);
-    auto color = 127.0f + 127.0f * std::sin((float) frameCount++ / 120.f);
-    jsRenderFrame(iWindow, w, h, fw, fh, mx, my, (int) color, emscripten_glfw_is_window_fullscreen(iWindow));
-}
-#endif
-
-static float global_start_time = 0.0f;
-//! The main loop (called by emscripten for each frame)
-void main_loop()
-{
-    
+static float global_last_frame_end_time = 0.0f;
+// Main loop (called by emscripten for each frame)
+void main_loop(){
     glfwMakeContextCurrent(window);
-    /* Loop until the user closes the window */
-    /* Poll for and process events */
+    // Loop until the user closes the window
+    // Poll for and process events
     glfwPollEvents();
     
 
@@ -153,8 +119,7 @@ void main_loop()
     glfwGetFramebufferSize(window, &fw, &fh);
 #endif
 
-    /* Render here */
-
+    // Render Section
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(1.0f, 0.0f, 0.0f, 255.0f);
     RenderRectangles(&global_app_state, global_delta_time);
@@ -162,7 +127,7 @@ void main_loop()
     glfwSwapBuffers(window);
 
     if(glfwWindowShouldClose(window)){
-        // done => terminating
+        // terminate program
         global_running = false;
         
         glfwTerminate();
@@ -172,9 +137,8 @@ void main_loop()
         #endif
     }
 
-    global_delta_time = glfwGetTime() - global_start_time;
-    
-    global_start_time = glfwGetTime();
+    global_delta_time = glfwGetTime() - global_last_frame_end_time;
+    global_last_frame_end_time = glfwGetTime();
 }
 
 int main(void) {
@@ -201,8 +165,8 @@ int main(void) {
     // make it not Hi DPI Aware (simplify rendering code a bit)
     glfwWindowHint(GLFW_SCALE_FRAMEBUFFER, GLFW_TRUE);
 
-    global_window_width = 800;
-    global_window_height = 800;
+    global_window_width = 600;
+    global_window_height = 600;
 
     printf("Frame Size  [%i, %i]\n", global_window_width, global_window_height);
 
@@ -214,8 +178,8 @@ int main(void) {
 
     window = glfwCreateWindow(global_window_width, global_window_height, "Tetris", nullptr, nullptr);
 #else
-    // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    // glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     /* Create a windowed mode window and its OpenGL context */
     window = glfwCreateWindow(global_window_width, global_window_height, "Tetris", NULL, NULL);
 
@@ -227,13 +191,9 @@ int main(void) {
         glfwTerminate();
         return -1;
     }
-    int error_point = glfwGetError(0);
-    printf("(1) Possible error %i\n", error_point);
 
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
-    error_point = glfwGetError(0);
-    printf("(2) Possible error %i\n", error_point);
 
 #if GLFW_PLATFORM_EMSCRIPTEN
     printf("GL ES VERSION %s\n", glGetString(GL_VERSION));
@@ -252,14 +212,11 @@ int main(void) {
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetCharCallback(window, character_callback);
     glfwWindowHint(GLFW_SAMPLES, 0); // Disable multisampling if not needed
-    // glEnable(GL_DEPTH_TEST);
-    // glDepthFunc(GL_LESS);
     
     app_start(&global_app_state);
     
 #if GLFW_PLATFORM_EMSCRIPTEN
     // makes the canvas resizable and match the full window size
-    // makes the canvas resizable to the size of its div container
     emscripten_glfw_make_canvas_resizable(window, "#canvas-container", nullptr);
     int w,h; 
     glfwGetWindowSize(window, &w, &h);
@@ -272,7 +229,7 @@ int main(void) {
 
     // tell emscripten to use "main_loop" as the main loop (window is user data)
     emscripten_set_main_loop(main_loop, 0, false);
-#else
+#endif
 
 #if _WIN32
     while (global_running) {
@@ -280,8 +237,6 @@ int main(void) {
     }
     AppQuit(&global_app_state);
 #endif
-
-#endif 
 
     return 0;
 }
