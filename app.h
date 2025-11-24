@@ -1,12 +1,18 @@
 #pragma once
 #include "HandmadeMath.h"
 #include "math.h"
+#include "renderer.h"
 
 static int global_window_width = 800;
 static int global_window_height = 800;
 
 static int global_frame_buffer_width = 800;
 static int global_frame_buffer_height = 800;
+
+float global_ortho_width = 1000.0f;
+float global_ortho_height = 1000.0f;
+TextureManager *global_textureManager;
+UIRenderer *global_UIRenderer;
 
 
 GLFWwindow *window = 0; // this is bad?
@@ -16,122 +22,6 @@ GLFWwindow *window = 0; // this is bad?
 
 void move_tetromino(int key);
 
-struct RGBA{
-    float r;
-    float g;
-    float b;
-    float a;
-};
-
-struct v2{
-    union {
-        struct{
-            float x;
-            float y;
-        };
-        
-        float e[2];
-    };
-    
-    v2& operator+=(const v2 a){
-        this->x += a.x;
-        this->y += a.y;
-
-        return *this;
-    }
-
-    v2& operator-=(v2 &a){
-        this->x -= a.x;
-        this->y -= a.y;
-
-        return *this;
-    }
-};
-
-struct v3{
-    union {
-        struct{
-            float x;
-            float y;
-            float z;
-        };
-        
-        float e[3];
-    };
-};
-
-
-struct v4{
-    union {
-        struct{
-            float x;
-            float y;
-            float z;
-            float w;  
-        };
-        
-        float e[4];
-    };
-};
-
-v2 operator-(v2 a, v2 b){
-    v2 result = {};
-
-    result.x = a.x - b.x;
-    result.y = a.y - b.y;
-
-    return result;
-}
-
-v2 operator+(v2 a, v2 b){
-    v2 result = {};
-
-    result.x = a.x + b.x;
-    result.y = a.y + b.y;
-
-    return result;
-}
-
-
-v2 operator*(v2 a, float b){
-    v2 result = {};
-
-    result.x = a.x * b;
-    result.y = a.y * b;
-
-    return result;
-}
-
-
-v3 operator+(v3 a, v3 b){
-    v3 result = {};
-
-    result.x = a.x + b.x;
-    result.y = a.y + b.y;
-    result.z = a.z + b.z;
-    
-    return result;
-}
-
-
-v3 operator*(v3 a, float b){
-    v3 result = {};
-
-    result.x = a.x * b;
-    result.y = a.y * b;
-    result.z = a.z * b;
-
-    return result;
-}
-
-struct Render_Square{
-    v2 dimensions;
-    v4 position;
-    RGBA color;
-    RGBA border_clr;
-    unsigned int vao;
-};
-
 struct AppState{
     bool initialized;
     int basic_sp;
@@ -140,12 +30,10 @@ struct AppState{
     HMM_Mat4 proj;
 
     unsigned int basic_vao;
-    // unsigned int basic_vbo;
     unsigned int basic_ebo;
-    unsigned int textures[MAX_TEX];
-    v3 cam_pos;
-    v3 cam_targ;
-    v3 cam_dir;
+    HMM_Vec3 cam_pos;
+    HMM_Vec3 cam_targ;
+    HMM_Vec3 cam_dir;
 
     int window_width;
     int window_height;

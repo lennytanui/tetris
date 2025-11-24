@@ -1,10 +1,7 @@
 #ifndef SHADER_H
 #include <iostream>
 #include <string>
-
-struct Shader2{
-    unsigned int program;
-};
+#include "shader.h"
 
 unsigned int GetUniformLocation(Shader2 *shader, const char *name){
     unsigned int result = 0;
@@ -21,11 +18,15 @@ void SetUniformValue(unsigned int uniform_location, HMM_Mat4 value){
 }
 
 void SetUniformValue(unsigned int uniform_location, HMM_Vec3 value){
-        glUniform3f(uniform_location, value.X, value.Y, value.Z);
+    glUniform3f(uniform_location, value.X, value.Y, value.Z);
 }
 
 void SetUniformValue(unsigned int uniform_location, HMM_Vec2 value){
-        glUniform2f(uniform_location, value.X, value.Y);
+    glUniform2f(uniform_location, value.X, value.Y);
+}
+
+void SetUniformValue(unsigned int uniform_location, unsigned int value){
+    glUniform1i(uniform_location, value);
 }
 
 void BindLocation(Shader2 *shader, unsigned int location, const char *value){

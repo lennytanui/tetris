@@ -2,6 +2,8 @@
 #include "text.cpp"
 #include "shader.cpp"
 #include <GLFW/glfw3.h>
+#include "input.h"
+#include "renderer.h"
 
 /** Note (Lenny) : IMGUI by Casey Muratori Notes
 
@@ -63,39 +65,13 @@ bool DoButton(UI_id, text, pos, ...) {
 #define BUTTON_HOT_COLOR {47.0f / 255.0f, 36.0f / 255.0f, 36.0f / 255.0f, 1.0f} // #252424
 #define BUTTON_ACTIVE_COLOR {82.0f / 255.0f, 60.0f / 255.0f, 60.0f / 255.0f, 1.0f} // #3e3c3c
 
-struct InputManager{
-    float cursorX;
-    float cursorY;
-    GLFWwindow *window;
-
-    void *active_ui;
-    void *hot_ui;
-
-    /** layouting
-        does not allow for panels inside panels yet
-    */ 
-    
-    HMM_Vec2 parent_pos;
-};
-
-struct Color{
-    union {
-        struct{
-            float r;
-            float g;
-            float b;
-            float a;
-        };
-
-        float elements[4];
-    };
-};
 
 Shader2 basic_2d_shader = {};
 unsigned int vao2d = 0;
 unsigned int vbo2d = 0;
 
 void SetActive(InputManager *im, void *active_ui){
+    im->cursorClickPos = im->cursorPos;
     im->active_ui = active_ui;
 }
 
@@ -111,81 +87,76 @@ void SetNotHot(InputManager *im){
     im->hot_ui = 0;
 }
 
-void Setup2dRendering(TextRendererManager *trm){
+UIRenderer::UIRenderer(TextureManager *textureManager): m_textureManager{textureManager}{
 
-    basic_2d_shader.program = LoadShaders("assets/basic_2d_shader_vs_web.glsl", "assets/basic_2d_shader_fs_web.glsl");
+    basic_2d_shader.program = LoadShaders("assets/basic_ui_shader_vs_web.glsl", "assets/basic_ui_shader_fs_web.glsl");
     glUseProgram(basic_2d_shader.program);
-    BindLocation(&basic_2d_shader, 0, "position");
-    BindLocation(&basic_2d_shader, 1, "color");
-    BindLocation(&basic_2d_shader, 2, "quad_size");
-    BindLocation(&basic_2d_shader, 3, "quad_position");
-    BindLocation(&basic_2d_shader, 4, "outline_width");
-
-    unsigned int u_projection_matrix = GetUniformLocation(&basic_2d_shader, "u_projection_matrix");
-    SetUniformValue(u_projection_matrix, trm->projection_ortho);
-
+    
+    unsigned int u_projection_matrix = GetUniformLocation(&basic_2d_shader, "uProjectionMatrix");
+    SetUniformValue(u_projection_matrix, m_projection_ortho);
+    
     unsigned int u_resolution = GetUniformLocation(&basic_2d_shader, "u_resolution");
-    SetUniformValue(u_resolution, HMM_Vec2{(float)global_window_width, (float)global_window_height});
+    SetUniformValue(u_resolution, HMM_Vec2{global_ortho_width, global_ortho_height});
     
     glGenVertexArrays(1, &vao2d);
     glGenBuffers(1, &vbo2d);
     glBindVertexArray(vao2d);
     glBindBuffer(GL_ARRAY_BUFFER, vbo2d);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 11 * 6, NULL,  GL_DYNAMIC_DRAW);
+
+    const unsigned int stride = 9;
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * stride * 6, NULL,  GL_DYNAMIC_DRAW);
     
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), 0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride * sizeof(float), 0);
     
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (GLvoid*)(2 * sizeof(float)));
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride * sizeof(float), (GLvoid*)(2 * sizeof(float)));
     
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (GLvoid*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride * sizeof(float), (GLvoid*)(6 * sizeof(float)));
     
     glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (GLvoid*)(8 * sizeof(float)));
-
-    glEnableVertexAttribArray(4);
-    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (GLvoid*)(10 * sizeof(float)));
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, stride * sizeof(float), (GLvoid*)(8 * sizeof(float)));
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
     glUseProgram(0);
-
-    int eof = 0;
 }
 
-void DrawRect(TextRendererManager *trm, HMM_Vec2 pos, float width, float height, Color color){
+void UIRenderer::DrawRect(HMM_Vec2 pos, float width, float height, RGBA color, const char *texturePath){
     // draw rect
     glUseProgram(basic_2d_shader.program);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
     glDisable(GL_DEPTH_TEST);
-
-    unsigned int u_projection_matrix = GetUniformLocation(&basic_2d_shader, "u_projection_matrix");
-    SetUniformValue(u_projection_matrix, trm->projection_ortho);
-
+    
+    unsigned int u_projection_matrix = GetUniformLocation(&basic_2d_shader, "uProjectionMatrix");
+    SetUniformValue(u_projection_matrix, m_projection_ortho);
+    
     glBindVertexArray(vao2d);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_textureManager->GetTexture(texturePath));
     
     float outline_width = 1.0f;
     HMM_Vec2 center_pos = {pos.X + width / 2.0f, pos.Y + height / 2.0f};
-
-    float vertices[6][11] = {
+    const unsigned int stride = 9;
+    float texSlot = 1.0f;
+    float vertices[6][stride] = {
         {pos.X, pos.Y, color.r, color.g, color.b, color.a, 
-            width, height, center_pos.X, center_pos.Y, outline_width},
+            0.0f, 0.0f, texSlot},
         {pos.X + width, pos.Y, color.r, color.g, color.b, color.a, 
-            width, height, center_pos.X, center_pos.Y, outline_width},
+            1.0f, 0.0f, texSlot},
         {pos.X + width, pos.Y + height, color.r, color.g, color.b, color.a, 
-            width, height, center_pos.X, center_pos.Y, outline_width},
+            1.0f, 1.0f, texSlot},
 
         {pos.X + width, pos.Y + height, color.r, color.g, color.b, color.a, 
-            width, height, center_pos.X, center_pos.Y, outline_width},
+            1.0f, 1.0f, texSlot},
         {pos.X, pos.Y + height, color.r, color.g, color.b, color.a, 
-            width, height, center_pos.X, center_pos.Y, outline_width},
+            0.0f, 1.0f, texSlot},
         {pos.X, pos.Y, color.r, color.g, color.b, color.a, 
-            width, height, center_pos.X, center_pos.Y, outline_width},
+            0.0f, 0.0f, texSlot},
     };
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo2d);
@@ -195,6 +166,7 @@ void DrawRect(TextRendererManager *trm, HMM_Vec2 pos, float width, float height,
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
     glDisable(GL_BLEND);
+    glBindTexture(GL_TEXTURE_2D, 0);
     glUseProgram(0);
 }
 
@@ -213,7 +185,7 @@ unsigned int UI_End(InputManager *im){
 }
 
 #define BUTTON_PADDING 5.0f;
-unsigned int Button(void *id, InputManager *im, TextRendererManager *trm, String label, HMM_Vec2 pos, Color color){
+unsigned int Button(void *id, InputManager *im, UIRenderer *renderer, String label, HMM_Vec2 pos, RGBA color){
 
     int result = 0;
     float scale = 1.0f; // should be passed in 
@@ -224,7 +196,7 @@ unsigned int Button(void *id, InputManager *im, TextRendererManager *trm, String
     for(int i = 0; i < label.length; i++){
         c = label.val[i];
         // Note (Lenny) : should have variable for active character table
-        Character ch = trm->cts[0].characters[c];
+        Character ch = renderer->GetCharacterTable()[0].characters[c];
         if(ch.size.Y > tallest.size.Y){
             tallest = ch;
         }
@@ -240,8 +212,8 @@ unsigned int Button(void *id, InputManager *im, TextRendererManager *trm, String
 
     int state = glfwGetMouseButton(im->window, GLFW_MOUSE_BUTTON_LEFT);
     
-    if(im->cursorX >= pos.X && im->cursorX <= pos.X + width 
-        && (im->cursorY) >= pos.Y && (im->cursorY) <= pos.Y + height){
+    if(im->cursorPos.X >= pos.X && im->cursorPos.X <= pos.X + width 
+        && (im->cursorPos.Y) >= pos.Y && (im->cursorPos.Y) <= pos.Y + height){
         if(!im->active_ui){
             SetHot(im, id);
     
@@ -280,19 +252,136 @@ unsigned int Button(void *id, InputManager *im, TextRendererManager *trm, String
 
     textPos.Y = pos.Y + (height / 2.0f) - (tallest.size.Y / 2.0f);
 
-    DrawRect(trm, pos, width, height, color);    
+    renderer->DrawRect(pos, width, height, color, "assets/white_texture.jpg");    
 
     unsigned int error = glGetError();
     Text text = {0};
     text.string = label;
     text.oneLine = true;
 
-    RenderText(trm, text, scale, HMM_Vec3{255.0f / 255.0f, 231.0f / 255.0f, 147.0f / 255.0f}, HMM_Vec2{textPos.X, textPos.Y});
+    renderer->RenderText(text, scale, HMM_Vec3{255.0f / 255.0f, 231.0f / 255.0f, 147.0f / 255.0f}, HMM_Vec2{textPos.X, textPos.Y});
     error = glGetError();
     return result;
 }
 
-unsigned int DrawUIText(TextRendererManager *trm, InputManager *im, float scale, String label, HMM_Vec2 pos,  HMM_Vec3 color){
+// Button With Image Background
+unsigned int Button(void *id, InputManager *im, UIRenderer *renderer, const char *background_image, HMM_Vec2 pos, HMM_Vec2 size){
+
+    int result = 0;
+    int state = glfwGetMouseButton(im->window, GLFW_MOUSE_BUTTON_LEFT);
+    
+    if(im->cursorPos.X >= pos.X && im->cursorPos.X <= pos.X + size.X 
+        && (im->cursorPos.Y) >= pos.Y && (im->cursorPos.Y) <= pos.Y + size.Y){
+        if(!im->active_ui){
+            SetHot(im, id);
+    
+            if(state == GLFW_PRESS){
+                SetActive(im, id);
+            }
+
+        }else{
+            
+            if(im->active_ui == id){
+                if (state == GLFW_RELEASE){
+                    SetNotActive(im);
+                    result = true;
+                }
+            }
+        }
+        
+    } else {
+        if(state == GLFW_RELEASE){
+            if(im->active_ui == id){
+                SetNotActive(im);
+            }
+
+            SetNotHot(im);
+        }
+    }
+
+    RGBA color = BUTTON_NORMAL_COLOR;
+    if(im->hot_ui == id){
+        color = BUTTON_HOT_COLOR;
+    }
+
+    if(im->active_ui == id){
+        color = BUTTON_ACTIVE_COLOR;
+    }
+
+    renderer->DrawRect(pos, size.X, size.Y, color, background_image);
+
+    unsigned int error = glGetError();
+    error = glGetError();
+    return result;
+}
+
+struct PanelState{
+    unsigned int hot;
+    unsigned int active;
+    unsigned int clicked;
+};
+
+// Panel
+PanelState Panel(void *id, InputManager *im, UIRenderer *renderer, const char *background_image, HMM_Vec2 pos, HMM_Vec2 size){
+
+    PanelState result = {0};
+    int state = glfwGetMouseButton(im->window, GLFW_MOUSE_BUTTON_LEFT);
+    
+    if(im->cursorPos.X >= pos.X && im->cursorPos.X <= pos.X + size.X 
+        && (im->cursorPos.Y) >= pos.Y && (im->cursorPos.Y) <= pos.Y + size.Y){
+        if(!im->active_ui){
+            SetHot(im, id);
+            result.hot = true;
+            if(state == GLFW_PRESS){
+                SetActive(im, id);
+            }
+
+        }else{
+            
+            if(im->active_ui == id){
+                if (state == GLFW_RELEASE){
+                    SetNotActive(im);
+                    result.clicked = true;
+                    result.active = false;
+                }
+            }
+        }
+        
+    } else {
+        if(state == GLFW_RELEASE){
+            if(im->active_ui == id){
+                SetNotActive(im);
+                result.active = false;
+            }
+
+            SetNotHot(im);
+            result.hot = false;
+        }
+    }
+
+    if(im->hot_ui == id){
+        result.hot = true;
+    }
+
+    if(im->active_ui == id){
+        result.active = true;
+    }
+
+    RGBA color = RGBA{0.1f, 0.0f, 0.0f, 0.3f};
+    // if(im->hot_ui == id){
+    //     color = BUTTON_HOT_COLOR;
+    // }
+
+    // if(im->active_ui == id){
+    //     color = BUTTON_ACTIVE_COLOR;
+    // }
+
+    renderer->DrawRect(pos, size.X, size.Y, color, background_image);
+    
+    return result;
+}
+
+unsigned int DrawUIText(UIRenderer *renderer, InputManager *im, float scale, String label, HMM_Vec2 pos,  HMM_Vec3 color){
     pos += im->parent_pos;
     pos.Y += 48 * scale;
 
@@ -300,7 +389,7 @@ unsigned int DrawUIText(TextRendererManager *trm, InputManager *im, float scale,
     text.string = label;
     text.oneLine = true;
 
-    RenderText(trm, text, scale, color / 255.0f, pos);
+    renderer->RenderText(text, scale, color / 255.0f, pos);
     return true;
 }
 

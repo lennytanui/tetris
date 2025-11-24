@@ -8,7 +8,7 @@
 #include "ui.cpp"
 #include "save.cpp"
 #include "str.c"
-#include "fire_scene.cpp"
+#include "utils.h"
 
 #include <random>
 #include <fstream>
@@ -93,8 +93,8 @@ Child_Block *current_blk = &global_parent.rotations[0];
 int parent_blk_index = 0;
 
 float move_amount = TILE_SIZE;
-v2 start_pos = {0};
-v2 curr_pos = {0};
+HMM_Vec2 start_pos = {0};
+HMM_Vec2 curr_pos = {0};
 bool global_pause = false;
 bool global_game_over = false;
 bool global_show_leaderboard = false;
@@ -108,7 +108,7 @@ int global_rotation_index = 0;
 
 Block_Info held_blck_parent = {};
 int can_hold = true;
-v2 held_blck_pos = {0};
+HMM_Vec2 held_blck_pos = {0};
 
 SoLoud::Soloud gSoloud; // SoLoud engine
 SoLoud::Wav gWave;      // One wave file
@@ -137,10 +137,12 @@ static float global_shake_sin = 0.0f;
 static bool camera_can_shake = false;
 static float camera_shake_time_left = 0.0f;
 
-TextRendererManager trm = {};
 InputManager im = {};
-
-FireScene fireScene;
+HMM_Vec2 testSquarePos = {50.0f, 50.0f};
+static bool mobileSliding = false;
+static HMM_Vec2 initialPiecePos = {0}; // for mobile sliding
+static float slideTime = 0.0f;
+static float verticalSlideTime = 0.5f;
 
 void SetCursorPosition(float x, float y){
     
@@ -148,26 +150,26 @@ void SetCursorPosition(float x, float y){
         HMM_Vec4 cursor_pos = {x, y, 0.0f, 1.0f};
         cursor_pos.X /= global_frame_buffer_width * 0.5f;
         cursor_pos.Y /= global_frame_buffer_height * 0.5f;
-        
+ 
+
         cursor_pos.X -= 1.0f;
         cursor_pos.Y -= 1.0f;
         cursor_pos.Y *= -1;
-
+ 
         cursor_pos = HMM_InvGeneralM4(global_app_state.proj) * cursor_pos;
         
-        im.cursorX = cursor_pos.X;
-        im.cursorY = cursor_pos.Y;
+        im.cursorPos = HMM_Vec2{cursor_pos.X, cursor_pos.Y};
     }
+    
 }
 
 namespace Tetris{
-
-void camera_shake(v3 *position, float dt){
+void camera_shake(HMM_Vec3 *position, float dt){
     if(camera_can_shake){
         global_shake_sin += CAMERA_SHAKE_SPEED * dt;
 
-        position->x += cos(global_shake_sin);
-        position->y += sin(global_shake_sin);
+        position->X += cos(global_shake_sin);
+        position->Y += sin(global_shake_sin);
     }
 
     if(camera_shake_time_left <= 0.0f){
@@ -225,11 +227,11 @@ void FindFullLines(){
     // global_time_btw_moves -= 0.005f * cleared_lines;
 }
 
-v2 GetBoardCoord(v2 position){
-    v2 result = {};
+HMM_Vec2 GetBoardCoord(HMM_Vec2 position){
+    HMM_Vec2 result = {};
 
-    result.x = (float)(int)(position.x - start_pos.x) / TILE_SIZE;
-    result.y = (float)(int)(position.y - start_pos.y) / TILE_SIZE;
+    result.X = (float)(int)(position.X - start_pos.X) / TILE_SIZE;
+    result.Y = (float)(int)(position.Y - start_pos.Y) / TILE_SIZE;
 
     return result;
 }
@@ -269,14 +271,14 @@ Block_Info GetNewParentBlock(){
 
     // check if out of bounds on the right
     for(int i = 0; i < 4; i++){
-        v2 tile_coord = result.rotations[0].structure[i];
-        if((curr_pos.x + tile_coord.x * TILE_SIZE) >= 
-            (start_pos.x + TILE_SIZE * TILE_COUNT_X)){
+        HMM_Vec2 tile_coord = result.rotations[0].structure[i];
+        if((curr_pos.X + tile_coord.X * TILE_SIZE) >= 
+            (start_pos.X + TILE_SIZE * TILE_COUNT_X)){
 
             // adjust right to be in bounds
-            curr_pos.x -= TILE_SIZE * 
-                ((curr_pos.x + tile_coord.x * TILE_SIZE) / 
-                    (start_pos.x + TILE_SIZE * TILE_COUNT_X));
+            curr_pos.X -= TILE_SIZE * 
+                ((curr_pos.X + tile_coord.X * TILE_SIZE) / 
+                    (start_pos.X + TILE_SIZE * TILE_COUNT_X));
 
         }
     }
@@ -284,20 +286,19 @@ Block_Info GetNewParentBlock(){
     return result;
 }
 
-int ReachedObstacle(v2 position){
+int ReachedObstacle(HMM_Vec2 position){
     int result = 0;
 
     for(int i = 0; i < 4; i++){
-        v2 structure = current_blk->structure[i];
-        // v2 coord = GetBoardCoord({structure.x * TILE_SIZE + curr_pos.x, structure.y * TILE_SIZE + curr_pos.y - 1});
-        v2 coord = GetBoardCoord({structure.x * TILE_SIZE + position.x, structure.y * TILE_SIZE + position.y - 1});
+        HMM_Vec2 structure = current_blk->structure[i];
+        HMM_Vec2 coord = GetBoardCoord({structure.X * TILE_SIZE + position.X, structure.Y * TILE_SIZE + position.Y - 1});
 
-        if(coord.y <= 0){
+        if(coord.Y <= 0){
             result = true;
             break;
         }
 
-        Tile *tile = &global_tetris_board.tiles[(int)coord.x][(int)coord.y];
+        Tile *tile = &global_tetris_board.tiles[(int)coord.X][(int)coord.Y];
         if(tile->taken){
             result = true;
             break;
@@ -314,17 +315,17 @@ void move_tetromino(int key){
   
     for(int i = 0; i < 4; i++){
         // Note (Lenny) : Unnecessary??
-        v2 tile_cell_pos = curr_pos;
-        tile_cell_pos.x += current_blk->structure[i].e[0] * TILE_SIZE;
-        tile_cell_pos.y += current_blk->structure[i].e[1] * TILE_SIZE;
+        HMM_Vec2 tile_cell_pos = curr_pos;
+        tile_cell_pos.X += current_blk->structure[i].Elements[0] * TILE_SIZE;
+        tile_cell_pos.Y += current_blk->structure[i].Elements[1] * TILE_SIZE;
 
-        v2 coord = GetBoardCoord(tile_cell_pos); 
+        HMM_Vec2 coord = GetBoardCoord(tile_cell_pos); 
 
-        if((coord.x - 1) < 0){
+        if((coord.X - 1) < 0){
             out_of_bounds_left = true;
         }
 
-        if((coord.x + 1) > (TILE_COUNT_X - 1)){
+        if((coord.X + 1) > (TILE_COUNT_X - 1)){
             out_of_bounds_right = true;
         }
     }
@@ -337,7 +338,7 @@ void move_tetromino(int key){
         return;
     }
 
-    if(global_game_over){
+    if(global_game_over || global_show_menuboard){
         return;
     }
 
@@ -353,7 +354,7 @@ void move_tetromino(int key){
 
         case GLFW_KEY_DOWN:
         case GLFW_KEY_S:{
-            curr_pos.y -= move_amount;
+            curr_pos.Y -= move_amount;
             gSoloud.play(global_wav_move);
             break;
         }
@@ -362,11 +363,11 @@ void move_tetromino(int key){
         case GLFW_KEY_RIGHT:
         case GLFW_KEY_D:{
             if(!out_of_bounds_right){
-                curr_pos.x += move_amount;
+                curr_pos.X += move_amount;
             }
 
             if(ReachedObstacle(curr_pos)){
-                curr_pos.x -= move_amount;
+                curr_pos.X -= move_amount;
             }else{
                 if(!out_of_bounds_right){
                     gSoloud.play(global_wav_move);
@@ -380,11 +381,11 @@ void move_tetromino(int key){
         case GLFW_KEY_A:{
 
             if(!out_of_bounds_left){
-                curr_pos.x -= move_amount;
+                curr_pos.X -= move_amount;
             }
 
             if(ReachedObstacle(curr_pos)){
-                curr_pos.x += move_amount;
+                curr_pos.X += move_amount;
             }else{
                 if(!out_of_bounds_left){
                     gSoloud.play(global_wav_move);
@@ -397,22 +398,22 @@ void move_tetromino(int key){
         
         case GLFW_KEY_UP:
         case GLFW_KEY_W:{
-            if(global_rotation_index >= global_parent.rotations_count){
-                global_rotation_index = 0;
+            if((global_rotation_index + 1) >= global_parent.rotations_count){
+                global_rotation_index = -1;
             }
-            current_blk = &global_parent.rotations[global_rotation_index++];
+            current_blk = &global_parent.rotations[++global_rotation_index];
             gSoloud.play(global_wav_move);
 
             // check if out of bounds on the right
             for(int i = 0; i < 4; i++){
-                v2 tile_coord = current_blk->structure[i];
-                if((curr_pos.x + tile_coord.x * TILE_SIZE) >= 
-                    (start_pos.x + TILE_SIZE * TILE_COUNT_X)){
+                HMM_Vec2 tile_coord = current_blk->structure[i];
+                if((curr_pos.X + tile_coord.X * TILE_SIZE) >= 
+                    (start_pos.X + TILE_SIZE * TILE_COUNT_X)){
 
                     // adjust right to be in bounds
-                    curr_pos.x -= TILE_SIZE * 
-                        ((curr_pos.x + tile_coord.x * TILE_SIZE) / 
-                            (start_pos.x + TILE_SIZE * TILE_COUNT_X));
+                    curr_pos.X -= TILE_SIZE * 
+                        ((curr_pos.X + tile_coord.X * TILE_SIZE) / 
+                            (start_pos.X + TILE_SIZE * TILE_COUNT_X));
 
                 }
             }
@@ -421,7 +422,6 @@ void move_tetromino(int key){
 
         // hold piece key
         case GLFW_KEY_C:{
-            printf("z has been clicked\n");
 
             if(can_hold){
                 Block_Info temp_held_parent = global_parent;
@@ -484,7 +484,7 @@ void SaveScore(int score){
     free(rdr.data);
 }
 
-void ResetParticleManager(ParticleManager *pm, v2 position){
+void ResetParticleManager(ParticleManager *pm, HMM_Vec2 position){
     if(!pm->ready){
         *pm = {0};
         pm->count = 100;
@@ -496,8 +496,8 @@ void ResetParticleManager(ParticleManager *pm, v2 position){
             // particle->acceleration = {0.5f,0.5f};
             float randx = RandomFloat(0.1, 0.5) * 12.7;
             float randy = RandomFloat(-0.5, 0.5) * 1.1;
-            particle->acceleration.x = randx; // rand
-            particle->acceleration.y = randy;
+            particle->acceleration.X = randx; // rand
+            particle->acceleration.Y = randy;
             particle->position = position;
             particle->size = {10, 10};
             particle->color = {RandomFloat(30, 255.0f), RandomFloat(30, 255.0f), RandomFloat(30, 255.0f), 255.0f};
@@ -506,37 +506,39 @@ void ResetParticleManager(ParticleManager *pm, v2 position){
 }
 
 void Resize_UpdatePositions(){
-    v2 old_start_pos = {start_pos.x, start_pos.y};
+    HMM_Vec2 old_start_pos = {start_pos.X, start_pos.Y};
     
-    start_pos.x = global_frame_buffer_width / 2.0f;
-    start_pos.x -= (TILE_SIZE * TILE_COUNT_X) / 2.0f;
-    start_pos.y = global_frame_buffer_height / 2.0f;
-    start_pos.y -= (TILE_SIZE * TILE_COUNT_Y) / 2.0f;
+    start_pos.X = global_ortho_width / 2.0f;
+    start_pos.X -= (TILE_SIZE * TILE_COUNT_X) / 2.0f;
+    start_pos.Y = global_ortho_height / 2.0f;
+    start_pos.Y -= (TILE_SIZE * TILE_COUNT_Y) / 2.0f;
 
-    v2 pos_diff = start_pos - old_start_pos;
+    HMM_Vec2 pos_diff = start_pos - old_start_pos;
     curr_pos += pos_diff;
 
-    held_blck_pos = {global_frame_buffer_width / 2.0f, start_pos.y + TILE_SIZE * TILE_COUNT_Y - TILE_SIZE * 8};
-    held_blck_pos.x -= (TILE_SIZE * TILE_COUNT_X) / 2.0f;
-    held_blck_pos.x -= TILE_SIZE * 5.0f;
-    // v2 held_blck_pos = {TILE_SIZE * 1, start_pos.y + TILE_SIZE * TILE_COUNT_Y - TILE_SIZE * 8};
-
+    held_blck_pos = {global_ortho_width / 2.0f, start_pos.Y + TILE_SIZE * TILE_COUNT_Y - TILE_SIZE * 8};
+    held_blck_pos.X -= (TILE_SIZE * TILE_COUNT_X) / 2.0f;
+    held_blck_pos.X -= TILE_SIZE * 5.0f;
 }
 
 void UpdateDimensions(){
     Resize_UpdatePositions();
-    UpdateTextRendererDimensions(&trm, global_frame_buffer_width, global_frame_buffer_height);
-    global_app_state.proj = HMM_Orthographic_LH_NO(0.0f, global_frame_buffer_width, 0.0f, global_frame_buffer_height, 0.0f, 10.0f);
+    
+    global_UIRenderer->UpdateTextRendererDimensions(global_ortho_width, global_ortho_height);
+    // global_app_state.proj = HMM_Orthographic_LH_NO(0.0f, global_frame_buffer_width, 0.0f, global_frame_buffer_height, 0.0f, 10.0f);
+
+    global_app_state.proj = HMM_Orthographic_LH_NO(0.0f, 1000, 0.0f, global_ortho_height, 0.0f, 10.0f);
 }
 
 void draw(AppState *app_state, float dt){
+    unsigned whiteTextureSlot = global_textureManager->GetTextureSlot("assets/white_texture.jpg");
     // draw background
     create_render_square(app_state,
-        v4{0.0f, 0.0f, 6.0f, 1.0f}, {(float)global_frame_buffer_width * 1.5f, (float)global_frame_buffer_height * 1.5f}, 
-        BACKGROUND_COLOR, BACKGROUND_COLOR);
+        HMM_Vec4{0.0f, 0.0f, 6.0f, 1.0f}, {(float)global_ortho_width * 1.5f, (float)global_ortho_height * 1.5f}, 
+        BACKGROUND_COLOR, BACKGROUND_COLOR, whiteTextureSlot);
 #if 1
     // draw the tiles
-    v2 tile_pos = start_pos;
+    HMM_Vec2 tile_pos = start_pos;
 
     for(int x = 0; x < TILE_COUNT_X; x++){
         for(int y = 0; y < TILE_COUNT_Y; y++){
@@ -544,7 +546,7 @@ void draw(AppState *app_state, float dt){
             
             float t = 0.25f;
 
-            v2 tile_pos_offset = {0.0f, 0.0f};
+            HMM_Vec2 tile_pos_offset = {0.0f, 0.0f};
             if(tile->taken){
                 // block lock animation if age < 5;
                 float grow_size = 100.0f;
@@ -553,14 +555,14 @@ void draw(AppState *app_state, float dt){
                         tile->size.X += grow_size * dt;
                         tile->size.Y += grow_size * dt;
 
-                        tile_pos_offset.x = -1 * grow_size * tile->age;
-                        tile_pos_offset.y = -1 * grow_size * tile->age;
+                        tile_pos_offset.X = -1 * grow_size * tile->age;
+                        tile_pos_offset.Y = -1 * grow_size * tile->age;
                     } else {
                         tile->size.X -= grow_size * dt;
                         tile->size.Y -= grow_size * dt;
                         
-                        tile_pos_offset.x = -1 * grow_size * (t - tile->age);
-                        tile_pos_offset.y = -1 * grow_size * (t - tile->age);
+                        tile_pos_offset.X = -1 * grow_size * (t - tile->age);
+                        tile_pos_offset.Y = -1 * grow_size * (t - tile->age);
                     }
                 }else{
                     tile->size.X = TILE_SIZE;
@@ -573,98 +575,48 @@ void draw(AppState *app_state, float dt){
                 z_index = 5.5f;
             }
             Render_Square *render_square = create_render_square(app_state,
-                v4{tile_pos.x + tile_pos_offset.x, tile_pos.y + tile_pos_offset.y, z_index, 1.0f}, {tile->size.X, tile->size.Y}, 
-                    tile->color, tile->border_clr);
+                HMM_Vec4{tile_pos.X + tile_pos_offset.X, tile_pos.Y + tile_pos_offset.Y, z_index, 1.0f}, {tile->size.X, tile->size.Y}, 
+                    tile->color, tile->border_clr, whiteTextureSlot);
             
-            tile_pos.y += TILE_SIZE;
+            tile_pos.Y += TILE_SIZE;
         }
         
-        tile_pos.x += TILE_SIZE;
-        tile_pos.y = start_pos.y;
+        tile_pos.X += TILE_SIZE;
+        tile_pos.Y = start_pos.Y;
     }    
-
-#if 0
-     // draw the grid
-    v2 tile_pos = start_pos;
-
-    for(int x = 0; x < TILE_COUNT_X; x++){
-        for(int y = 0; y < TILE_COUNT_Y; y++){
-            Tile *tile = &global_tetris_board.tiles[x][y];   
-            
-            float t = 0.25f;
-
-            v2 tile_pos_offset = {0.0f, 0.0f};
-            if(tile->taken){
-                // block lock animation if age < 5;
-                float grow_size = 100.0f;
-                if(tile->age <= t){
-                    if(tile->age < (t / 2.0f)){
-                        tile->size.X += grow_size * dt;
-                        tile->size.Y += grow_size * dt;
-
-                        tile_pos_offset.x = -1 * grow_size * tile->age;
-                        tile_pos_offset.y = -1 * grow_size * tile->age;
-                    } else {
-                        tile->size.X -= grow_size * dt;
-                        tile->size.Y -= grow_size * dt;
-                        
-                        tile_pos_offset.x = -1 * grow_size * (t - tile->age);
-                        tile_pos_offset.y = -1 * grow_size * (t - tile->age);
-                    }
-                }else{
-                    tile->size.X = TILE_SIZE;
-                    tile->size.Y = TILE_SIZE;
-                }
-            }
-
-            float z_index = 5.0f;
-            if(tile->age < t & tile->age > 0){
-                z_index = 5.5f;
-            }
-            Render_Square *render_square = create_render_square(app_state,
-                v4{tile_pos.x + tile_pos_offset.x, tile_pos.y + tile_pos_offset.y, z_index, 1.0f}, {tile->size.X, tile->size.Y}, 
-                    tile->color, tile->border_clr);
-            
-            tile_pos.y += TILE_SIZE;
-        }
-        
-        tile_pos.x += TILE_SIZE;
-        tile_pos.y = start_pos.y;
-    }    
-#endif
 
     // draw active block
     if(!global_show_menuboard || !global_show_leaderboard){
         for(int i = 0; i < 4; i++){
-            v2 tile_pos = {
-                curr_pos.x + current_blk->structure[i].x * TILE_SIZE,
-                curr_pos.y + current_blk->structure[i].y * TILE_SIZE
+            HMM_Vec2 tile_pos = {
+                curr_pos.X + current_blk->structure[i].X * TILE_SIZE,
+                curr_pos.Y + current_blk->structure[i].Y * TILE_SIZE
             };
 
             Render_Square *background = create_render_square(app_state,
-                    v4{tile_pos.x, tile_pos.y, 0.0f, 1.0f}, {TILE_SIZE, TILE_SIZE}, 
-                        global_parent.color, BORDER_CLR);
+                    HMM_Vec4{tile_pos.X, tile_pos.Y, 0.0f, 1.0f}, {TILE_SIZE, TILE_SIZE}, 
+                        global_parent.color, BORDER_CLR, whiteTextureSlot);
         }
 
         // calculate active block "shadow" position
         int current_blk_height = 0;
         float shadow_y = 0;
         for(int i = 0; i < 4; i++){
-            if(current_blk->structure[i].y > current_blk_height){
-                current_blk_height = current_blk->structure[i].y;
+            if(current_blk->structure[i].Y > current_blk_height){
+                current_blk_height = current_blk->structure[i].Y;
             }
 
             // Scan through the lower tiles to find closest block
             int reached_down = 0;
-            float j = curr_pos.y;
+            float j = curr_pos.Y;
         
             while(reached_down == 0){
-                v2 tile_pos = {
-                    curr_pos.x + (current_blk->structure[i].x * TILE_SIZE),
-                    j + (current_blk->structure[i].y * TILE_SIZE)
+                HMM_Vec2 tile_pos = {
+                    curr_pos.X + (current_blk->structure[i].X * TILE_SIZE),
+                    j + (current_blk->structure[i].Y * TILE_SIZE)
                 };
 
-                reached_down = ReachedObstacle(v2{curr_pos.x, j});
+                reached_down = ReachedObstacle(HMM_Vec2{curr_pos.X, j});
                 j--;
             }
             if(j > shadow_y){
@@ -674,76 +626,79 @@ void draw(AppState *app_state, float dt){
 
         // draw current block "shadow"
         for(int i = 0; i < 4; i++){
-            v2 tile_pos = {
-                curr_pos.x + (current_blk->structure[i].x * TILE_SIZE),
-                shadow_y + (current_blk->structure[i].y * TILE_SIZE)
+            HMM_Vec2 tile_pos = {
+                curr_pos.X + (current_blk->structure[i].X * TILE_SIZE),
+                shadow_y + (current_blk->structure[i].Y * TILE_SIZE)
             };
 
-            // tile_pos.y -= TILE_SIZE * (current_blk_height + 1);
+            // tile_pos.Y -= TILE_SIZE * (current_blk_height + 1);
 
             Render_Square *background = create_render_square(app_state,
-                    {tile_pos.x, tile_pos.y, 0.0f, 1.0f}, {TILE_SIZE, TILE_SIZE}, 
-                        BORDER_CLR, global_parent.color);
+                    {tile_pos.X, tile_pos.Y, 0.0f, 1.0f}, {TILE_SIZE, TILE_SIZE}, 
+                        BORDER_CLR, global_parent.color, whiteTextureSlot);
         }
 
     }
 
     // draw held block background
-    DrawText(&trm, Create_String("HOLD"), 0.5f, 
-        {held_blck_pos.x + TILE_SIZE * 1, held_blck_pos.y + TILE_SIZE * 5.5f}, 
+    global_UIRenderer->DrawText(Create_String("HOLD"), 0.5f, 
+        {held_blck_pos.X + TILE_SIZE * 1, held_blck_pos.Y + TILE_SIZE * 5.5f}, 
         {125.0f, 125.0f, 125.0f});
     Render_Square *render_square = create_render_square(app_state,
-        {held_blck_pos.x, held_blck_pos.y, 1.0f, 1.0f}, {TILE_SIZE * 4, TILE_SIZE * 4}, 
-            {70.0f, 70.0f, 70.0f, 255.0f}, {70.0f, 70.0f, 70.0f, 255.0f});
+        {held_blck_pos.X, held_blck_pos.Y, 1.0f, 1.0f}, {TILE_SIZE * 4, TILE_SIZE * 4}, 
+            {70.0f, 70.0f, 70.0f, 255.0f}, {70.0f, 70.0f, 70.0f, 255.0f}, whiteTextureSlot);
 
     // draw held block 
     if(held_blck_parent.rotations_count > 0){
         for(int i = 0; i < 4; i++){
-            v2 tile_pos = {
-                held_blck_pos.x + TILE_SIZE + held_blck_parent.rotations[0].structure[i].x * TILE_SIZE,
-                held_blck_pos.y + TILE_SIZE + held_blck_parent.rotations[0].structure[i].y * TILE_SIZE
+            HMM_Vec2 tile_pos = {
+                held_blck_pos.X + TILE_SIZE + held_blck_parent.rotations[0].structure[i].X * TILE_SIZE,
+                held_blck_pos.Y + TILE_SIZE + held_blck_parent.rotations[0].structure[i].Y * TILE_SIZE
             };
 
             Render_Square *background = create_render_square(app_state,
-                    {tile_pos.x, tile_pos.y, 0.0f, 1.0f}, {TILE_SIZE, TILE_SIZE}, 
-                        held_blck_parent.color, BORDER_CLR);
+                    {tile_pos.X, tile_pos.Y, 0.0f, 1.0f}, {TILE_SIZE, TILE_SIZE}, 
+                        held_blck_parent.color, BORDER_CLR, whiteTextureSlot);
         }
     }
 
+    create_render_square(app_state, {testSquarePos.X, testSquarePos.Y, 0.0f, 1.0f}, 
+        {TILE_SIZE, TILE_SIZE},RGBA{255.0f, 0.0f, 0.0f, 50.0f}, BORDER_CLR, whiteTextureSlot);
 
-    v2 menu_position = {start_pos.x, start_pos.y + (TILE_SIZE * 2)};
-    v2 menu_size = {TILE_SIZE * TILE_COUNT_X, TILE_SIZE * 0.75f * TILE_COUNT_Y};
+
+    HMM_Vec2 menu_position = {start_pos.X, start_pos.Y + (TILE_SIZE * 2)};
+    HMM_Vec2 menu_size = {TILE_SIZE * TILE_COUNT_X, TILE_SIZE * 0.75f * TILE_COUNT_Y};
 
     // draw pause menu
     if(global_pause){
         // draw menu background
-        create_render_square(app_state, v4{menu_position.x, menu_position.y, 0.0f, 1.0f}, 
-            menu_size, 
-        {60.0f, 60.0f, 60.0f, 255.0f}, {60.0f, 60.0f, 60.0f, 255.0f});
+        create_render_square(app_state, HMM_Vec4{menu_position.X, menu_position.Y, 0.0f, 1.0f}, 
+            menu_size, {60.0f, 60.0f, 60.0f, 255.0f}, 
+            {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
 
-        DrawText(&trm, Create_String("PAUSE"), 1.2f, 
-        {menu_position.x + TILE_SIZE * 3, 
-            menu_position.y + menu_size.y - TILE_SIZE * 3.0f}, 
+        global_UIRenderer->DrawText(Create_String("PAUSE"), 1.2f, 
+        {menu_position.X + TILE_SIZE * 3, 
+            menu_position.Y + menu_size.Y - TILE_SIZE * 3.0f}, 
         {125.0f, 125.0f, 125.0f});
         
-        if(Button((void *)AppQuit, &im, &trm,  Create_String("Quit"), 
-            HMM_Vec2{menu_position.x + TILE_SIZE * 3, 
-            menu_position.y + menu_size.y - TILE_SIZE * 7.0f}, 
+        if(Button((void *)AppQuit, &im, global_UIRenderer,  Create_String("Quit"), 
+            HMM_Vec2{menu_position.X + TILE_SIZE * 3, 
+            menu_position.Y + menu_size.Y - TILE_SIZE * 7.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             // quit
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
 
-        if(Button((void *)draw, &im, &trm,  Create_String("Continue"), 
-            HMM_Vec2{menu_position.x + TILE_SIZE * 3, 
-            menu_position.y + menu_size.y - TILE_SIZE * 9.0f}, 
+        if(Button((void *)draw, &im, global_UIRenderer,  Create_String("Continue"), 
+            HMM_Vec2{menu_position.X + TILE_SIZE * 3, 
+            menu_position.Y + menu_size.Y - TILE_SIZE * 9.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             global_pause = false;
         }
         
-        if(Button((void *)draw, &im, &trm,  Create_String("Settings"), 
-            HMM_Vec2{menu_position.x + TILE_SIZE * 3, 
-            menu_position.y + menu_size.y - TILE_SIZE * 11.0f}, 
+        if(Button((void *)draw, &im, global_UIRenderer,  Create_String("Settings"), 
+            HMM_Vec2{menu_position.X + TILE_SIZE * 3, 
+            menu_position.Y + menu_size.Y - TILE_SIZE * 11.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             global_pause = false;
         }
@@ -751,41 +706,41 @@ void draw(AppState *app_state, float dt){
 
     // draw game over
     if(global_game_over && !global_show_menuboard && !global_show_leaderboard){
-        create_render_square(app_state, v4{menu_position.x, menu_position.y, 0.0f, 1.0f}, 
-            menu_size, 
-        {60.0f, 60.0f, 60.0f, 255.0f}, {60.0f, 60.0f, 60.0f, 255.0f});
+        create_render_square(app_state, HMM_Vec4{menu_position.X, menu_position.Y, 0.0f, 1.0f}, 
+            menu_size, {60.0f, 60.0f, 60.0f, 255.0f}, 
+            {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
 
-        DrawText(&trm, Create_String("GAME OVER!"), 0.9f, 
-        {menu_position.x + TILE_SIZE * 1, 
-            menu_position.y + menu_size.y - TILE_SIZE * 3.0f}, 
+        global_UIRenderer->DrawText(Create_String("GAME OVER!"), 0.9f, 
+        {menu_position.X + TILE_SIZE * 1, 
+            menu_position.Y + menu_size.Y - TILE_SIZE * 3.0f}, 
         {125.0f, 125.0f, 125.0f});
         
         
         String high_score_str = Create_String("High Score : ");
         AddToString(&high_score_str, 555);
-        DrawText(&trm, high_score_str, 0.8f, 
-        {menu_position.x + TILE_SIZE * 1, 
-            menu_position.y + menu_size.y - TILE_SIZE * 5.0f},
+        global_UIRenderer->DrawText(high_score_str, 0.8f, 
+        {menu_position.X + TILE_SIZE * 1, 
+            menu_position.Y + menu_size.Y - TILE_SIZE * 5.0f},
             {200.0f, 200.0f, 200.0f});
 
         String score_string = Create_String("SCORE - ");
         AddToString(&score_string, global_last_game_score);
-        DrawText(&trm, score_string, 0.8f, 
-        {menu_position.x + TILE_SIZE * 1, 
-            menu_position.y + menu_size.y - TILE_SIZE * 7.0f}, 
+        global_UIRenderer->DrawText(score_string, 0.8f, 
+        {menu_position.X + TILE_SIZE * 1, 
+            menu_position.Y + menu_size.Y - TILE_SIZE * 7.0f}, 
         {125.0f, 125.0f, 125.0f});
 
-        if(Button((void *)AppQuit, &im, &trm,  Create_String("Menu"), 
-            HMM_Vec2{menu_position.x + TILE_SIZE * 1, 
-            menu_position.y + menu_size.y - TILE_SIZE * 9.0f}, 
+        if(Button((void *)AppQuit, &im, global_UIRenderer,  Create_String("Menu"), 
+            HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
+            menu_position.Y + menu_size.Y - TILE_SIZE * 9.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             global_show_menuboard = true;
         }
 
 
-        if(Button((void *)draw, &im, &trm,  Create_String("Restart"), 
-            HMM_Vec2{menu_position.x + TILE_SIZE * 1, 
-            menu_position.y + menu_size.y - TILE_SIZE * 9.0f}, 
+        if(Button((void *)draw, &im, global_UIRenderer,  Create_String("Restart"), 
+            HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
+            menu_position.Y + menu_size.Y - TILE_SIZE * 9.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             global_pause = false;
 
@@ -805,13 +760,13 @@ void draw(AppState *app_state, float dt){
 
     // show leader board    
     if(global_show_leaderboard){
-        create_render_square(app_state, v4{menu_position.x, menu_position.y, 0.0f, 1.0f}, 
-            menu_size, 
-        {60.0f, 60.0f, 60.0f, 255.0f}, {60.0f, 60.0f, 60.0f, 255.0f});
+        create_render_square(app_state, HMM_Vec4{menu_position.X, menu_position.Y, 0.0f, 1.0f}, 
+            menu_size, {60.0f, 60.0f, 60.0f, 255.0f}, 
+            {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
 
-        DrawText(&trm, Create_String("LEADERBOARD"), 0.9f, 
-        {menu_position.x + TILE_SIZE * 1, 
-            menu_position.y + menu_size.y - TILE_SIZE * 3.0f}, 
+        global_UIRenderer->DrawText(Create_String("LEADERBOARD"), 0.9f, 
+        {menu_position.X + TILE_SIZE * 1, 
+            menu_position.Y + menu_size.Y - TILE_SIZE * 3.0f}, 
         {125.0f, 125.0f, 125.0f});
 
         
@@ -825,31 +780,31 @@ void draw(AppState *app_state, float dt){
             float leader_board_score_height = TILE_SIZE + 48;
 
             if(i % 2 == 0){
-                create_render_square(app_state, {menu_position.x,
-                    menu_position.y + menu_size.y - TILE_SIZE * y_pos, 0.0f, 1.0f}, 
-                    {menu_size.x, leader_board_score_height }, 
-                {20.0f, 20.0f, 20.0f, 255.0f}, {20.0f, 20.0f, 20.0f, 255.0f});
+                create_render_square(app_state, {menu_position.X,
+                    menu_position.Y + menu_size.Y - TILE_SIZE * y_pos, 0.0f, 1.0f}, 
+                    {menu_size.X, leader_board_score_height }, 
+                {20.0f, 20.0f, 20.0f, 255.0f}, {20.0f, 20.0f, 20.0f, 255.0f}, whiteTextureSlot);
             } else {
-                create_render_square(app_state, {menu_position.x,
-                    menu_position.y + menu_size.y - TILE_SIZE * y_pos, 0.0f, 1.0f}, 
-                    {menu_size.x, leader_board_score_height }, 
-                {80.0f, 80.0f, 80.0f, 255.0f}, {80.0f, 80.0f, 80.0f, 255.0f});
+                create_render_square(app_state, {menu_position.X,
+                    menu_position.Y + menu_size.Y - TILE_SIZE * y_pos, 0.0f, 1.0f}, 
+                    {menu_size.X, leader_board_score_height }, 
+                {80.0f, 80.0f, 80.0f, 255.0f}, {80.0f, 80.0f, 80.0f, 255.0f}, whiteTextureSlot);
             }
 
 
             String score_string = Create_String("Score : ");
             AddToString(&score_string, rdr.data[i].score);
-            DrawText(&trm, score_string, 0.9f, 
-            {menu_position.x + TILE_SIZE * 1, 
-                menu_position.y + menu_size.y - TILE_SIZE * y_pos + 48 * 0.5f}, 
+            global_UIRenderer->DrawText(score_string, 0.9f, 
+            {menu_position.X + TILE_SIZE * 1, 
+                menu_position.Y + menu_size.Y - TILE_SIZE * y_pos + 48 * 0.5f}, 
             {125.0f, 125.0f, 125.0f});
 
             y_pos += 2;
         }
 
-        if(Button(&global_show_leaderboard, &im, &trm,  Create_String("Back"), 
-            HMM_Vec2{menu_position.x + TILE_SIZE * 1, 
-            menu_position.y + menu_size.y - TILE_SIZE * y_pos}, 
+        if(Button(&global_show_leaderboard, &im, global_UIRenderer,  Create_String("Back"), 
+            HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
+            menu_position.Y + menu_size.Y - TILE_SIZE * y_pos}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             
             global_show_leaderboard = false;
@@ -859,19 +814,19 @@ void draw(AppState *app_state, float dt){
 
     // show menu board
     if(global_show_menuboard){
-        create_render_square(app_state, v4{menu_position.x, menu_position.y, 0.0f, 1.0f}, 
+        create_render_square(app_state, HMM_Vec4{menu_position.X, menu_position.Y, 0.0f, 1.0f}, 
             menu_size, 
-        {60.0f, 60.0f, 60.0f, 255.0f}, {60.0f, 60.0f, 60.0f, 255.0f});
+        {60.0f, 60.0f, 60.0f, 255.0f}, {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
 
-        DrawText(&trm, Create_String("MENU"), 0.9f, 
-        {menu_position.x + TILE_SIZE * 1, 
-            menu_position.y + menu_size.y - TILE_SIZE * 3.0f}, 
+        global_UIRenderer->DrawText(Create_String("MENU"), 0.9f, 
+        {menu_position.X + TILE_SIZE * 1, 
+            menu_position.Y + menu_size.Y - TILE_SIZE * 3.0f}, 
         {125.0f, 125.0f, 125.0f});
 
         float y_pos = 5.0f;
-        if(Button(&global_pause, &im, &trm,  Create_String("Play"), 
-            HMM_Vec2{menu_position.x + TILE_SIZE * 1, 
-            menu_position.y + menu_size.y - TILE_SIZE * y_pos}, 
+        if(Button(&global_pause, &im, global_UIRenderer,  Create_String("Play"), 
+            HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
+            menu_position.Y + menu_size.Y - TILE_SIZE * y_pos}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             
             global_pause = false;
@@ -891,50 +846,31 @@ void draw(AppState *app_state, float dt){
             global_show_menuboard = false;
         }
 
-        if(Button(&global_show_leaderboard, &im, &trm,  Create_String("Leaderboard"), 
-            HMM_Vec2{menu_position.x + TILE_SIZE * 1, 
-            menu_position.y + menu_size.y - TILE_SIZE * (y_pos + 2)}, 
+        if(Button(&global_show_leaderboard, &im, global_UIRenderer,  Create_String("Leaderboard"), 
+            HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
+            menu_position.Y + menu_size.Y - TILE_SIZE * (y_pos + 2)}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
                 global_show_leaderboard = true;
                 global_show_menuboard = false;
         }
         
-        if(Button((void *)&AppQuit, &im, &trm,  Create_String("Quit"), 
-            HMM_Vec2{menu_position.x + TILE_SIZE * 1, 
-            menu_position.y + menu_size.y - TILE_SIZE * (y_pos + 4)}, 
+        if(Button((void *)&AppQuit, &im, global_UIRenderer,  Create_String("Quit"), 
+            HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
+            menu_position.Y + menu_size.Y - TILE_SIZE * (y_pos + 4)}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
 
             // quit
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
     }
-
-    // draw particles
-    // for(int i = 0; i < TILE_COUNT_X; i++){
-    //     for(int j = 0; j < 4; j++){
-    //         ParticleManager *pm = &global_pms[i][j];
-
-    //         if(pm->ready){
-    //             for(int k = 0; k < pm->count; k++){
-
-    //                 Particle *particle = &pm->particles[k];
-                    
-    //                 Render_Square *background = create_render_square(app_state,
-    //                         {particle->position.x, particle->position.y}, {particle->size.x, particle->size.y}, 
-    //                             particle->color, particle->color);
-    //             }
-    //         }
-    //     }
-    // }
+    
 #endif
 }
 
-
-
 void start(AppState *app_state){
-#if 1
+
     Resize_UpdatePositions();
-    curr_pos = {start_pos.x + TILE_SIZE * 3, start_pos.y + TILE_SIZE * (TILE_COUNT_Y - 2)};
+    curr_pos = {start_pos.X + TILE_SIZE * 3, start_pos.Y + TILE_SIZE * (TILE_COUNT_Y - 2)};
     global_show_menuboard = true;
     ReadDataFile("data.dat");
     for(int x = 0; x < TILE_COUNT_X; x++){
@@ -947,35 +883,26 @@ void start(AppState *app_state){
 
     app_state->cam_pos = CAMERA_NORMAL_POSITION;
     gSoloud.init(); // Initialize SoLoud
-    gWave.load("assets/Future-Technology.wav"); // Load a wave
-    gSoloud.play(gWave); // Play the wave
+    gWave.load("assets/Future-Technology.Wav"); // Load a wave
+    // gSoloud.play(gWave); // Play the wave
     gWave.setLooping(1);
 
-    global_wav_reached_down.load("assets/ImpactIntoSand.wav");
-    global_wav_phase.load("assets/Retro Block Hit.wav");
-    global_wav_move.load("assets/Click.wav");
+    global_wav_reached_down.load("assets/ImpactIntoSand.Wav");
+    global_wav_phase.load("assets/Retro Block Hit.Wav");
+    global_wav_move.load("assets/Click.Wav");
 
-    SetupTextRenderer(&trm, app_state->window_width, app_state->window_height);
-    Setup2dRendering(&trm);
+    global_UIRenderer->SetupTextRenderer(app_state->window_width, app_state->window_height);
     im.window = window;
-#endif
-    // fireScene.Start();
 }
 
 void update(AppState *app_state, float dt){
-    
-#if 0 // Fire Scene Updates
-    fireScene.Update(app_state, dt);
-    fireScene.Draw(app_state);
-#endif
 
 #if 1 // Tetris Updates
-    for(int j = 0; j < 4; j++){
-        for(int i = 0; i < TILE_COUNT_X; i++){
-            if(global_pms[i][j].ready){
-                EmitParticles(&global_pms[i][j], dt);
-            }
-        }
+
+    // Slide Timing
+
+    if(mobileSliding){
+        slideTime += dt;
     }
 
     // Iterate through all tiles and update ages
@@ -1001,14 +928,14 @@ void update(AppState *app_state, float dt){
     if(global_reached_down){
         // change the color of the bottom blocks
         for(int i = 0; i < 4; i++){
-            v2 size = {TILE_SIZE, TILE_SIZE};
-            v2 tile_cell_pos = curr_pos;
-            tile_cell_pos.x += current_blk->structure[i].e[0] * size.x;
-            tile_cell_pos.y += current_blk->structure[i].e[1] * size.y;
+            HMM_Vec2 size = {TILE_SIZE, TILE_SIZE};
+            HMM_Vec2 tile_cell_pos = curr_pos;
+            tile_cell_pos.X += current_blk->structure[i].Elements[0] * size.X;
+            tile_cell_pos.Y += current_blk->structure[i].Elements[1] * size.Y;
 
-            v2 coord = GetBoardCoord(tile_cell_pos); 
+            HMM_Vec2 coord = GetBoardCoord(tile_cell_pos); 
 
-            Tile *tile = &global_tetris_board.tiles[(int)coord.x][(int)coord.y];
+            Tile *tile = &global_tetris_board.tiles[(int)coord.X][(int)coord.Y];
             tile->taken = true;
             tile->age = 0;
             tile->color = global_parent.color;
@@ -1022,7 +949,7 @@ void update(AppState *app_state, float dt){
 
 
         // move to the top
-        curr_pos.y = start_pos.y + TILE_SIZE * (TILE_COUNT_Y - 2);
+        curr_pos.Y = start_pos.Y + TILE_SIZE * (TILE_COUNT_Y - 2);
         global_reached_down = 0;
 
         // check if spawned on top of a piece
@@ -1052,12 +979,14 @@ void update(AppState *app_state, float dt){
         gSoloud.setPause(h, 0);
     }
 
+    testSquarePos.Y = curr_pos.Y;
+
     // Tetris main calculations
     if(!global_game_over && !global_pause && !global_show_menuboard && !global_show_leaderboard){
 
         if(global_time_to_next_move <= 0){ // Move down
             if (global_time_to_clear_lines <= 0) { // all lines are cleared
-                curr_pos.y -= move_amount;
+                curr_pos.Y -= move_amount;
 
                 if(global_phase_down){
                     global_time_to_next_move = PHASE_TIME;
@@ -1114,6 +1043,71 @@ void update(AppState *app_state, float dt){
             }
         }
 
+        // swiping and such
+        HMM_Vec2 cursorPos = im.cursorPos;
+
+        PanelState panelState = Panel(&im.cursorPos, &im, global_UIRenderer, "assets/white_texture.jpg", 
+            start_pos, {TILE_SIZE * TILE_COUNT_X, TILE_SIZE * TILE_COUNT_Y});
+
+        if(panelState.hot){
+            HMM_Vec2 oldPos = curr_pos;
+
+            if(panelState.active){
+                if(mobileSliding == false){
+                    initialPiecePos = curr_pos;
+                    slideTime = 0.0f;
+                    mobileSliding = true;
+                }
+
+                HMM_Vec2 tileFixedPos = initialPiecePos;
+                tileFixedPos.X += (int)((cursorPos.X - im.cursorClickPos.X) / TILE_SIZE) * TILE_SIZE;        
+        
+                curr_pos.X = tileFixedPos.X;
+                bool out_of_bounds_left = false;
+                bool out_of_bounds_right = false;
+
+                for(int i = 0; i < 4; i++){
+                    // Note (Lenny) : Unnecessary??
+                    HMM_Vec2 tile_cell_pos = curr_pos;
+                    tile_cell_pos.X += current_blk->structure[i].Elements[0] * TILE_SIZE;
+                    tile_cell_pos.Y += current_blk->structure[i].Elements[1] * TILE_SIZE;
+
+                    HMM_Vec2 coord = GetBoardCoord(tile_cell_pos); 
+
+                    if(coord.X < 0){
+                        out_of_bounds_left = true;
+                    }
+
+                    if((coord.X + 1) > TILE_COUNT_X){
+                        out_of_bounds_right = true;
+                    }
+                }
+
+                if(out_of_bounds_left || out_of_bounds_right){
+                    curr_pos = oldPos;
+                }
+            }
+        }
+
+        if(panelState.clicked == 1){
+            mobileSliding = false;
+            int tilesMovedVertical = (cursorPos.Y - im.cursorClickPos.Y) / TILE_SIZE;
+            int tilesMovedHorizontal = (cursorPos.X - im.cursorClickPos.X) / TILE_SIZE;
+
+            if(tilesMovedVertical < 0 && slideTime < verticalSlideTime){
+                move_tetromino(GLFW_KEY_SPACE); // Phase Down
+            }
+
+            if(slideTime < 0.5f && tilesMovedVertical > 0){
+                move_tetromino(GLFW_KEY_C); // Store Tetromino
+            }
+
+            if(slideTime < 1.0f && tilesMovedVertical == 0 && tilesMovedHorizontal == 0){
+                move_tetromino(GLFW_KEY_UP); // Rotate Tetromino
+            }
+        }
+        
+
         global_time_to_next_move -= dt;
     }
 
@@ -1162,20 +1156,20 @@ void update(AppState *app_state, float dt){
     AddToString(&framet_str, framet_val_avg_updated * 10 * 10 * 10);
     AddToString(&fps_str, fps_count_avg);
     
-    v2 framet_pos = {start_pos.x + TILE_SIZE * (TILE_COUNT_X + 1), held_blck_pos.y + TILE_SIZE * 2.5f};
-    v2 fps_pos = {start_pos.x + TILE_SIZE * (TILE_COUNT_X + 1), held_blck_pos.y + TILE_SIZE * 0.5f};
+    HMM_Vec2 framet_pos = {start_pos.X + TILE_SIZE * (TILE_COUNT_X + 1), held_blck_pos.Y + TILE_SIZE * 2.5f};
+    HMM_Vec2 fps_pos = {start_pos.X + TILE_SIZE * (TILE_COUNT_X + 1), held_blck_pos.Y + TILE_SIZE * 0.5f};
 
-    DrawText(&trm, framet_str, 0.5f, {framet_pos.x, framet_pos.y}, 
+    global_UIRenderer->DrawText(framet_str, 0.5f, {framet_pos.X, framet_pos.Y}, 
         {200.0f, 200.0f, 200.0f});
         
-    DrawText(&trm, fps_str, 0.5f, {fps_pos.x, fps_pos.y}, 
+    global_UIRenderer->DrawText(fps_str, 0.5f, {fps_pos.X, fps_pos.Y}, 
         {200.0f, 200.0f, 200.0f});
 
-    v2 score_pos = {start_pos.x + TILE_SIZE * (TILE_COUNT_X + 1), held_blck_pos.y + TILE_SIZE * 5.5f};
-    // score_pos.x += (TILE_SIZE.)
-    // start_pos.x + (TILE_SIZE / 2.0f) * TILE_COUNT_X - TILE_SIZE * 2
+    HMM_Vec2 score_pos = {start_pos.X + TILE_SIZE * (TILE_COUNT_X + 1), held_blck_pos.Y + TILE_SIZE * 5.5f};
+    // score_pos.X += (TILE_SIZE.)
+    // start_pos.X + (TILE_SIZE / 2.0f) * TILE_COUNT_X - TILE_SIZE * 2
 
-    DrawText(&trm, score_str, 0.5f, {score_pos.x, score_pos.y}, 
+    global_UIRenderer->DrawText(score_str, 0.5f, {score_pos.X, score_pos.Y}, 
         {200.0f, 200.0f, 200.0f});
 #endif
 

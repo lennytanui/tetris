@@ -1,23 +1,14 @@
 #version 300 es 
 precision mediump float;
 
-in vec2 texCoord; 
-in vec4 color; 
-in vec4 border_clr; 
-in vec2 pos_; 
+in vec2 fTexCoord; 
+in vec4 fColor; 
+in float fTexSlot;
 
-uniform sampler2D testTexture; 
+uniform sampler2D texture_0;
+uniform sampler2D texture_1;
 
 out vec4 FragColor; 
 void main(){ 
-    vec4 clr = color; 
-
-    if (pos_.x <= 0.1f || pos_.x >= 0.9f){ 
-        clr = border_clr; 
-    } else if (pos_.y <= 0.1f || pos_.y >= 0.9f) { 
-        clr = border_clr; 
-    } 
-
-    FragColor = clr *  
-    texture(testTexture, texCoord); 
+    FragColor = aColor * texture(texture_0, fTexCoord); 
 }

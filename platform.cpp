@@ -25,17 +25,18 @@ static void window_size_callback(GLFWwindow* window, int width, int height)
 {
     global_window_width = width;
     global_window_height = height;
-    
-    Tetris::UpdateDimensions();
 }
 
-// TODO: should use this viewport
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     global_frame_buffer_width = width;
     global_frame_buffer_height = height;
-
     glViewport(0, 0, global_frame_buffer_width, global_frame_buffer_height);
+    
+    global_ortho_width = 1000.0f;
+    global_ortho_height = global_ortho_width;
+    global_ortho_height *= ((float)global_frame_buffer_height / (float)global_frame_buffer_width);
+    Tetris::UpdateDimensions();
 }
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -69,23 +70,13 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
             break;
         };
 
-        case NOTES:{
-            if((key == GLFW_KEY_BACKSPACE || key == GLFW_KEY_ENTER || key == GLFW_KEY_LEFT 
-                || GLFW_KEY_RIGHT) 
-                && (action == GLFW_PRESS || action == GLFW_REPEAT)){
-                Notes::NotesKeyPress(key, action);
-            }
-        };
-
         default: break;
     }
 }
 
 void character_callback(GLFWwindow* window, unsigned int codePoint)
 {
-    if(currentApp == NOTES){
-        Notes::ReceiveCharacter(codePoint);
-    }
+    
 }
 
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
@@ -122,7 +113,6 @@ void main_loop(){
     // Render Section
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(1.0f, 0.0f, 0.0f, 255.0f);
-    RenderRectangles(&global_app_state, global_delta_time);
     app_update(&global_app_state, global_delta_time);
     glfwSwapBuffers(window);
 
@@ -184,7 +174,6 @@ int main(void) {
     window = glfwCreateWindow(global_window_width, global_window_height, "Lennys Canvas", NULL, NULL);
 
 #endif
-
     
     if (!window) {
         printf("Failed to Create Window \n");
@@ -214,7 +203,8 @@ int main(void) {
     glfwWindowHint(GLFW_SAMPLES, 0); // Disable multisampling if not needed
     
     app_start(&global_app_state);
-    
+    Tetris::UpdateDimensions();
+
 #if GLFW_PLATFORM_EMSCRIPTEN
     // makes the canvas resizable and match the full window size
     emscripten_glfw_make_canvas_resizable(window, "#canvas-container", nullptr);
@@ -225,7 +215,6 @@ int main(void) {
 
     global_frame_buffer_width = fw;
     global_frame_buffer_height = fh;
-    Tetris::UpdateDimensions();
 
     // tell emscripten to use "main_loop" as the main loop (window is user data)
     emscripten_set_main_loop(main_loop, 0, false);

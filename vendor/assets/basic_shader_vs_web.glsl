@@ -3,6 +3,7 @@ layout (location = 0) in vec4 aPos;
 layout (location = 1) in vec4 aColor; 
 layout (location = 2) in vec2 aTexCoord; 
 layout (location = 3) in vec4 a_border_clr; 
+layout (location = 4) in float a_texSlot; 
 
 uniform mat4 u_view;  
 uniform mat4 u_projection; 
@@ -18,4 +19,5 @@ void main() {
     texCoord = aTexCoord; 
     color = aColor; 
     border_clr = a_border_clr; 
+    texSlot = a_texSlot;
 }

@@ -11,7 +11,7 @@
 #define VIOLET {255.0f, 0.0f, 0.0f, 255.0f}
 
 struct Child_Block{
-    v2 structure[4];
+    HMM_Vec2 structure[4];
 };
 
 struct Block_Info{
@@ -23,18 +23,18 @@ struct Block_Info{
 static const Block_Info SHAPE_straight = {
     2, RGBA{255.0f, 0.0f, 0.0f, 255.0f}, 
     {
-        {v2{0.0f, 0.0f}, v2{1.0f, 0.0f}, v2{2.0f, 0.0f}, v2{3.0f, 0.0f}}, 
-        {v2{0.0f, 0.0f}, v2{0.0f, 1.0f}, v2{0.0f, 2.0f}, v2{0.0f, 3.0f}}
+        {HMM_Vec2{0.0f, 0.0f}, HMM_Vec2{1.0f, 0.0f}, HMM_Vec2{2.0f, 0.0f}, HMM_Vec2{3.0f, 0.0f}}, 
+        {HMM_Vec2{0.0f, 0.0f}, HMM_Vec2{0.0f, 1.0f}, HMM_Vec2{0.0f, 2.0f}, HMM_Vec2{0.0f, 3.0f}}
     }
 };
 
 static const Block_Info SHAPE_l1 = {
     4, RGBA{0.0f, 255.0f, 0.0f, 255.0f}, 
     {
-        {v2{0.0f, 0.0f}, v2{1.0f, 0.0f}, v2{2.0f, 0.0f}, v2{0.0f, 1.0f}}, 
-        {v2{0.0f, 0.0f}, v2{1.0f, 0.0f}, v2{1.0f, 1.0f}, v2{1.0f, 2.0f}},
-        {v2{2.0f, 0.0f}, v2{2.0f, 1.0f}, v2{1.0f, 1.0f}, v2{0.0f, 1.0f}},
-        {v2{0.0f, 0.0f}, v2{0.0f, 1.0f}, v2{0.0f, 2.0f}, v2{1.0f, 2.0f}}
+        {HMM_Vec2{0.0f, 0.0f}, HMM_Vec2{1.0f, 0.0f}, HMM_Vec2{2.0f, 0.0f}, HMM_Vec2{0.0f, 1.0f}}, 
+        {HMM_Vec2{0.0f, 0.0f}, HMM_Vec2{1.0f, 0.0f}, HMM_Vec2{1.0f, 1.0f}, HMM_Vec2{1.0f, 2.0f}},
+        {HMM_Vec2{2.0f, 0.0f}, HMM_Vec2{2.0f, 1.0f}, HMM_Vec2{1.0f, 1.0f}, HMM_Vec2{0.0f, 1.0f}},
+        {HMM_Vec2{0.0f, 0.0f}, HMM_Vec2{0.0f, 1.0f}, HMM_Vec2{0.0f, 2.0f}, HMM_Vec2{1.0f, 2.0f}}
     }
 };
 
@@ -42,43 +42,43 @@ static const Block_Info SHAPE_l1 = {
 static const Block_Info SHAPE_l2 = {
     4, RGBA{0.0f, 0.0f, 255.0f, 255.0f}, 
     {
-        {v2{0.0f, 0.0f}, v2{1.0f, 0.0f}, v2{0.0f, 1.0f}, v2{0.0f, 2.0f}}, 
-        {v2{0.0f, 0.0f}, v2{1.0f, 0.0f}, v2{2.0f, 0.0f}, v2{2.0f, 1.0f}},
-        {v2{1.0f, 0.0f}, v2{1.0f, 1.0f}, v2{1.0f, 2.0f}, v2{0.0f, 2.0f}},
-        {v2{0.0f, 0.0f}, v2{0.0f, 1.0f}, v2{1.0f, 1.0f}, v2{2.0f, 1.0f}}
+        {HMM_Vec2{0.0f, 0.0f}, HMM_Vec2{1.0f, 0.0f}, HMM_Vec2{0.0f, 1.0f}, HMM_Vec2{0.0f, 2.0f}}, 
+        {HMM_Vec2{0.0f, 0.0f}, HMM_Vec2{1.0f, 0.0f}, HMM_Vec2{2.0f, 0.0f}, HMM_Vec2{2.0f, 1.0f}},
+        {HMM_Vec2{1.0f, 0.0f}, HMM_Vec2{1.0f, 1.0f}, HMM_Vec2{1.0f, 2.0f}, HMM_Vec2{0.0f, 2.0f}},
+        {HMM_Vec2{0.0f, 0.0f}, HMM_Vec2{0.0f, 1.0f}, HMM_Vec2{1.0f, 1.0f}, HMM_Vec2{2.0f, 1.0f}}
     }
 };
 
 static const Block_Info SHAPE_square = {
     1, RGBA{0.0f, 255.0f, 255.0f, 255.0f}, 
     {
-        {v2{0.0f, 0.0f}, v2{1.0f, 0.0f}, v2{0.0f, 1.0f}, v2{1.0f, 1.0f}}
+        {HMM_Vec2{0.0f, 0.0f}, HMM_Vec2{1.0f, 0.0f}, HMM_Vec2{0.0f, 1.0f}, HMM_Vec2{1.0f, 1.0f}}
     }
 };
 
 static const Block_Info SHAPE_zigzag1 = {
     2, RGBA{255.0f, 0.0f, 255.0f, 255.0f}, 
     {
-        {v2{0.0f, 0.0f}, v2{1.0f, 0.0f}, v2{1.0f, 1.0f}, v2{2.0f, 1.0f}},
-        {v2{1.0f, 0.0f}, v2{1.0f, 1.0f}, v2{0.0f, 1.0f}, v2{0.0f, 2.0f}},
+        {HMM_Vec2{0.0f, 0.0f}, HMM_Vec2{1.0f, 0.0f}, HMM_Vec2{1.0f, 1.0f}, HMM_Vec2{2.0f, 1.0f}},
+        {HMM_Vec2{1.0f, 0.0f}, HMM_Vec2{1.0f, 1.0f}, HMM_Vec2{0.0f, 1.0f}, HMM_Vec2{0.0f, 2.0f}},
     }
 };
 
 static const Block_Info SHAPE_zigzag2 = {
     2, RGBA{255.0f, 0.0f, 255.0f, 255.0f}, 
     {
-        {v2{1.0f, 0.0f}, v2{2.0f, 0.0f}, v2{0.0f, 1.0f}, v2{1.0f, 1.0f}},
-        {v2{0.0f, 0.0f}, v2{0.0f, 1.0f}, v2{1.0f, 1.0f}, v2{1.0f, 2.0f}},
+        {HMM_Vec2{1.0f, 0.0f}, HMM_Vec2{2.0f, 0.0f}, HMM_Vec2{0.0f, 1.0f}, HMM_Vec2{1.0f, 1.0f}},
+        {HMM_Vec2{0.0f, 0.0f}, HMM_Vec2{0.0f, 1.0f}, HMM_Vec2{1.0f, 1.0f}, HMM_Vec2{1.0f, 2.0f}},
     }
 };
 
 static const Block_Info SHAPE_t = {
     4, RGBA{255.0f, 255.0f, 0.0f, 255.0f}, 
     {
-        {v2{1.0f, 0.0f}, v2{0.0f, 1.0f}, v2{1.0f, 1.0f}, v2{2.0f, 1.0f}},
-        {v2{1.0f, 0.0f}, v2{1.0f, 1.0f}, v2{1.0f, 2.0f}, v2{0.0f, 1.0f}},
-        {v2{0.0f, 0.0f}, v2{0.0f, 1.0f}, v2{0.0f, 2.0f}, v2{1.0f, 1.0f}},
-        {v2{0.0f, 0.0f}, v2{1.0f, 0.0f}, v2{2.0f, 0.0f}, v2{1.0f, 1.0f}},
+        {HMM_Vec2{1.0f, 0.0f}, HMM_Vec2{0.0f, 1.0f}, HMM_Vec2{1.0f, 1.0f}, HMM_Vec2{2.0f, 1.0f}},
+        {HMM_Vec2{1.0f, 0.0f}, HMM_Vec2{1.0f, 1.0f}, HMM_Vec2{1.0f, 2.0f}, HMM_Vec2{0.0f, 1.0f}},
+        {HMM_Vec2{0.0f, 0.0f}, HMM_Vec2{0.0f, 1.0f}, HMM_Vec2{0.0f, 2.0f}, HMM_Vec2{1.0f, 1.0f}},
+        {HMM_Vec2{0.0f, 0.0f}, HMM_Vec2{1.0f, 0.0f}, HMM_Vec2{2.0f, 0.0f}, HMM_Vec2{1.0f, 1.0f}},
     }
 };
 

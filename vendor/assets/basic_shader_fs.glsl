@@ -2,9 +2,11 @@
 in vec2 texCoord; 
 in vec4 color; 
 in vec4 border_clr; 
-in vec2 pos_; 
+in vec2 pos_;
+in float texSlot;
 
-uniform sampler2D testTexture; 
+uniform sampler2D texture_0; 
+uniform sampler2D texture_1; 
 
 out vec4 FragColor; 
 void main(){ 
@@ -16,6 +18,10 @@ void main(){
         clr = border_clr; 
     } 
 
-    FragColor = clr *  
-    texture(testTexture, texCoord); 
+    if(texSlot == 0){
+        FragColor = clr * texture(texture_0, texCoord); 
+    }else{
+        FragColor = clr * texture(texture_1, texCoord); 
+    }
+
 }
