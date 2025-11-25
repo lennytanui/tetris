@@ -367,7 +367,7 @@ PanelState Panel(void *id, InputManager *im, UIRenderer *renderer, const char *b
         result.active = true;
     }
 
-    RGBA color = RGBA{0.1f, 0.0f, 0.0f, 0.3f};
+    RGBA color = RGBA{0.1f, 0.0f, 0.0f, 0.0f};
     // if(im->hot_ui == id){
     //     color = BUTTON_HOT_COLOR;
     // }
@@ -376,7 +376,7 @@ PanelState Panel(void *id, InputManager *im, UIRenderer *renderer, const char *b
     //     color = BUTTON_ACTIVE_COLOR;
     // }
 
-    renderer->DrawRect(pos, size.X, size.Y, color, background_image);
+    // renderer->DrawRect(pos, size.X, size.Y, color, background_image);
     
     return result;
 }

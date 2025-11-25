@@ -594,7 +594,7 @@ void draw(AppState *app_state, float dt){
             };
 
             Render_Square *background = create_render_square(app_state,
-                    HMM_Vec4{tile_pos.X, tile_pos.Y, 0.0f, 1.0f}, {TILE_SIZE, TILE_SIZE}, 
+                    HMM_Vec4{tile_pos.X, tile_pos.Y, 4.0f, 1.0f}, {TILE_SIZE, TILE_SIZE}, 
                         global_parent.color, BORDER_CLR, whiteTextureSlot);
         }
 
@@ -631,11 +631,9 @@ void draw(AppState *app_state, float dt){
                 shadow_y + (current_blk->structure[i].Y * TILE_SIZE)
             };
 
-            // tile_pos.Y -= TILE_SIZE * (current_blk_height + 1);
-
             Render_Square *background = create_render_square(app_state,
-                    {tile_pos.X, tile_pos.Y, 0.0f, 1.0f}, {TILE_SIZE, TILE_SIZE}, 
-                        BORDER_CLR, global_parent.color, whiteTextureSlot);
+                    {tile_pos.X, tile_pos.Y, 4.0f, 1.0f}, {TILE_SIZE, TILE_SIZE}, 
+                        RGBA{1.0f, 0.0f, 1.0f, 1.0f}, global_parent.color, whiteTextureSlot);
         }
 
     }

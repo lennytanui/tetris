@@ -13,6 +13,7 @@ out vec2 pos_;
 out vec2 texCoord; 
 out vec4 color; 
 out vec4 border_clr; 
+out float texSlot;
 void main() { 
     pos_ = aTexCoord;
     gl_Position = u_projection * u_view * vec4(aPos.x, aPos.y, aPos.z, aPos.w); 

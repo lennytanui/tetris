@@ -60,7 +60,8 @@ unsigned int TextureManager::AddTexture(const char *filepath){
     unsigned char *data = stbi_load(filepath, &width, &height, 
         &nr_channels, 0);
     
-    glActiveTexture(textureSlotsCount);
+    printf("Requested Texture Slot : %i\n", textureSlotsCount);
+    glActiveTexture(GL_TEXTURE0 + textureSlotsCount);
     glGenTextures(1, &result);
     glBindTexture(GL_TEXTURE_2D, result);
     

@@ -12,9 +12,9 @@ out vec4 FragColor;
 void main(){ 
     vec4 clr = color; 
 
-    if (pos_.x <= 0.1f || pos_.x >= 0.9f){ 
+    if (pos_.x <= 0.1 || pos_.x >= 0.9){ 
         clr = border_clr; 
-    } else if (pos_.y <= 0.1f || pos_.y >= 0.9f) { 
+    } else if (pos_.y <= 0.1 || pos_.y >= 0.9) { 
         clr = border_clr; 
     } 
 

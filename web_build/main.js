@@ -29,7 +29,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\Lanny\AppData\Local\Temp\tmpkvbp9dy8.js
+// include: C:\Users\Lanny\AppData\Local\Temp\tmpjz0j5h9d.js
 Module["expectedDataFileDownloads"] ??= 0;
 
 Module["expectedDataFileDownloads"]++;
@@ -233,128 +233,128 @@ Module["expectedDataFileDownloads"]++;
     }, {
       "filename": "/assets/basic_shader_fs.glsl",
       "start": 27989146,
-      "end": 27989713
+      "end": 27989709
     }, {
       "filename": "/assets/basic_shader_fs_web.glsl",
-      "start": 27989713,
-      "end": 27990039
+      "start": 27989709,
+      "end": 27990427
     }, {
       "filename": "/assets/basic_shader_vs.glsl",
-      "start": 27990039,
-      "end": 27990661
+      "start": 27990427,
+      "end": 27991049
     }, {
       "filename": "/assets/basic_shader_vs_web.glsl",
-      "start": 27990661,
-      "end": 27991211
+      "start": 27991049,
+      "end": 27991689
     }, {
       "filename": "/assets/basic_ui_shader_fs.glsl",
-      "start": 27991211,
-      "end": 27992414
+      "start": 27991689,
+      "end": 27992892
     }, {
       "filename": "/assets/basic_ui_shader_fs_web.glsl",
-      "start": 27992414,
-      "end": 27992899
+      "start": 27992892,
+      "end": 27993377
     }, {
       "filename": "/assets/basic_ui_shader_vs.glsl",
-      "start": 27992899,
-      "end": 27993466
+      "start": 27993377,
+      "end": 27993944
     }, {
       "filename": "/assets/basic_ui_shader_vs_web.glsl",
-      "start": 27993466,
-      "end": 27993910
+      "start": 27993944,
+      "end": 27994388
     }, {
       "filename": "/assets/container.jpg",
-      "start": 27993910,
-      "end": 28178849
+      "start": 27994388,
+      "end": 28179327
     }, {
       "filename": "/assets/d_button.jpg",
-      "start": 28178849,
-      "end": 28189713
+      "start": 28179327,
+      "end": 28190191
     }, {
       "filename": "/assets/d_button.xcf",
-      "start": 28189713,
-      "end": 28234262
+      "start": 28190191,
+      "end": 28234740
     }, {
       "filename": "/assets/original tetris theme.mp3",
-      "start": 28234262,
-      "end": 28954646,
+      "start": 28234740,
+      "end": 28955124,
       "audio": 1
     }, {
       "filename": "/assets/original tetris theme.wav",
-      "start": 28954646,
-      "end": 37599332,
+      "start": 28955124,
+      "end": 37599810,
       "audio": 1
     }, {
       "filename": "/assets/s_button.jpg",
-      "start": 37599332,
-      "end": 37610662
+      "start": 37599810,
+      "end": 37611140
     }, {
       "filename": "/assets/s_button.xcf",
-      "start": 37610662,
-      "end": 37655211
+      "start": 37611140,
+      "end": 37655689
     }, {
       "filename": "/assets/smooth_guitar.wav",
-      "start": 37655211,
-      "end": 41761017,
+      "start": 37655689,
+      "end": 41761495,
       "audio": 1
     }, {
       "filename": "/assets/test.txt",
-      "start": 41761017,
-      "end": 41761057
+      "start": 41761495,
+      "end": 41761535
     }, {
       "filename": "/assets/text_basic_fs.glsl",
-      "start": 41761057,
-      "end": 41761326
+      "start": 41761535,
+      "end": 41761804
     }, {
       "filename": "/assets/text_basic_fs_web.glsl",
-      "start": 41761326,
-      "end": 41761595
+      "start": 41761804,
+      "end": 41762073
     }, {
       "filename": "/assets/text_basic_vs.glsl",
-      "start": 41761595,
-      "end": 41761817
+      "start": 41762073,
+      "end": 41762295
     }, {
       "filename": "/assets/text_basic_vs_web.glsl",
-      "start": 41761817,
-      "end": 41762039
+      "start": 41762295,
+      "end": 41762517
     }, {
       "filename": "/assets/w_button.jpg",
-      "start": 41762039,
-      "end": 41777047
+      "start": 41762517,
+      "end": 41777525
     }, {
       "filename": "/assets/w_button.xcf",
-      "start": 41777047,
-      "end": 41837931
+      "start": 41777525,
+      "end": 41838409
     }, {
       "filename": "/assets/white_texture.jpg",
-      "start": 41837931,
-      "end": 41843358
+      "start": 41838409,
+      "end": 41843836
     }, {
       "filename": "/data.dat",
-      "start": 41843358,
-      "end": 41843871
+      "start": 41843836,
+      "end": 41844349
     } ],
-    "remote_package_size": 41843871
+    "remote_package_size": 41844349
   });
 })();
 
-// end include: C:\Users\Lanny\AppData\Local\Temp\tmpkvbp9dy8.js
-// include: C:\Users\Lanny\AppData\Local\Temp\tmpvxjzc512.js
+// end include: C:\Users\Lanny\AppData\Local\Temp\tmpjz0j5h9d.js
+// include: C:\Users\Lanny\AppData\Local\Temp\tmp8vhtfe_3.js
 // All the pre-js content up to here must remain later on, we need to run
 // it.
 if ((typeof ENVIRONMENT_IS_WASM_WORKER != "undefined" && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != "undefined" && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != "undefined" && ENVIRONMENT_IS_AUDIO_WORKLET)) Module["preRun"] = [];
 
 var necessaryPreJSTasks = Module["preRun"].slice();
 
-// end include: C:\Users\Lanny\AppData\Local\Temp\tmpvxjzc512.js
-// include: C:\Users\Lanny\AppData\Local\Temp\tmp98gxa3j1.js
+// end include: C:\Users\Lanny\AppData\Local\Temp\tmp8vhtfe_3.js
+// include: C:\Users\Lanny\AppData\Local\Temp\tmpyx8h6tyg.js
 if (!Module["preRun"]) throw "Module.preRun should exist because file support used it; did a pre-js delete it?";
 
 necessaryPreJSTasks.forEach(task => {
   if (Module["preRun"].indexOf(task) < 0) throw "All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?";
 });
 
-// end include: C:\Users\Lanny\AppData\Local\Temp\tmp98gxa3j1.js
+// end include: C:\Users\Lanny\AppData\Local\Temp\tmpyx8h6tyg.js
 var arguments_ = [];
 
 var thisProgram = "./this.program";
@@ -7427,8 +7427,8 @@ function checkIncomingModuleAPI() {
 }
 
 var ASM_CONSTS = {
-  238488: () => (navigator.mediaDevices !== undefined && navigator.mediaDevices.getUserMedia !== undefined),
-  238592: () => {
+  238504: () => (navigator.mediaDevices !== undefined && navigator.mediaDevices.getUserMedia !== undefined),
+  238608: () => {
     try {
       var temp = new (window.AudioContext || window.webkitAudioContext);
       var sampleRate = temp.sampleRate;
@@ -7438,7 +7438,7 @@ var ASM_CONSTS = {
       return 0;
     }
   },
-  238763: $0 => {
+  238779: $0 => {
     var device = miniaudio.get_device_by_index($0);
     if (device.scriptNode !== undefined) {
       device.scriptNode.onaudioprocess = function(e) {};
@@ -7459,7 +7459,7 @@ var ASM_CONSTS = {
     }
     miniaudio.untrack_device_by_index($0);
   },
-  239389: ($0, $1, $2, $3, $4) => {
+  239405: ($0, $1, $2, $3, $4) => {
     var channels = $0;
     var sampleRate = $1;
     var bufferSize = $2;
@@ -7560,21 +7560,21 @@ var ASM_CONSTS = {
     }
     return miniaudio.track_device(device);
   },
-  243273: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
-  243339: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
-  243405: $0 => {
+  243289: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
+  243355: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
+  243421: $0 => {
     miniaudio.get_device_by_index($0).webaudio.resume();
   },
-  243462: $0 => {
+  243478: $0 => {
     miniaudio.get_device_by_index($0).webaudio.resume();
   },
-  243519: $0 => {
+  243535: $0 => {
     miniaudio.get_device_by_index($0).webaudio.suspend();
   },
-  243577: $0 => {
+  243593: $0 => {
     miniaudio.get_device_by_index($0).webaudio.suspend();
   },
-  243635: () => {
+  243651: () => {
     if ((window.AudioContext || window.webkitAudioContext) === undefined) {
       return 0;
     }
