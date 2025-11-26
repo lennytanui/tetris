@@ -144,6 +144,9 @@ static HMM_Vec2 initialPiecePos = {0}; // for mobile sliding
 static float slideTime = 0.0f;
 static float verticalSlideTime = 0.5f;
 
+
+DataElement_return *global_FetchedScores = 0;
+
 void SetCursorPosition(float x, float y){
     
     if(global_app_state.initialized){
@@ -455,33 +458,39 @@ void move_tetromino(int key){
 // could use a c++ data structure
 void SaveScore(int score){
     DataElement de = {};
+    de.username = "bob";
     de.score = score;
-    de.time = Create_String("time");
-    de.date = Create_String("date");
+    de.time = "time";
+    de.date = "date";
+    std::string newScore = "SaveScore({";
+    newScore += "username :' "+ de.username + "',";
+    newScore += "score : "+ std::to_string(de.score) + ",";
+    newScore += "time : '"+ de.time + "',";
+    newScore += "date : '"+ de.date + "'";
+    newScore += "})";
     
-    AddToDataFile("data.dat", de);
+    RunJS(newScore.c_str());
+}
 
-    // sort the leader board
-    ReadDataResult rdr = ReadDataFile("data.dat");
+extern "C" EMSCRIPTEN_KEEPALIVE void GetLeaderBoard(void *leaderboard){
 
-    int swapped = 1;
-    while(swapped){
-        swapped = 0;
-        for(int i = 0; i < rdr.data_len - 1; i++){
-            DataElement de_0 = rdr.data[i];
-            DataElement de_1 = rdr.data[i + 1];
+    printf("LeaderBoardFunction Called\n");
+    // int data = EM_ASM_INT({
+    //         let result = await GetScores();
+    //         result.then(val => {
+    //             console.log("Promise Result = ", val);
+    //         });
+    //         console.log(result);
+    //         return 1;
+    //     });
 
-            if(de_1.score > de_0.score){
-                rdr.data[i] = de_1;
-                rdr.data[i + 1] = de_0;
-                swapped = 1;
-            }
-        }
-    }
+    //     printf("Returned Data --- %i\n");
+    DataElement_return global_FetchedScores = (DataElement_return *)leaderboard;
+    printf("FETCH DATA {score : %i,}\n", global_FetchedScores->score);
 
-    WriteDataFile("data.dat", rdr.data, rdr.data_len, 1);
-
-    free(rdr.data);
+    free(global_FetchedScores->username);
+    free(global_FetchedScores->date);
+    free(global_FetchedScores->time);
 }
 
 void ResetParticleManager(ParticleManager *pm, HMM_Vec2 position){
@@ -768,9 +777,15 @@ void draw(AppState *app_state, float dt){
         {125.0f, 125.0f, 125.0f});
 
         
-        ReadDataResult rdr = ReadDataFile("data.dat");
-        float y_pos = 5.0f;
+        // ReadDataResult rdr = ReadDataFile("data.dat");
+        
+        // for(int i = 0; i < 1; i++){
+        //     printf("Scoreglobal_FetchedScores[i];
+        // }
 
+
+        float y_pos = 5.0f;
+        #if 0
         for(int i = 0; i < rdr.data_len; i++){
             if(i >= 5){
                 break;
@@ -799,6 +814,7 @@ void draw(AppState *app_state, float dt){
 
             y_pos += 2;
         }
+        #endif
 
         if(Button(&global_show_leaderboard, &im, global_UIRenderer,  Create_String("Back"), 
             HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
@@ -850,6 +866,15 @@ void draw(AppState *app_state, float dt){
                 {0.3f, 0.3f, 0.3f, 1.0f})){
                 global_show_leaderboard = true;
                 global_show_menuboard = false;
+            
+            int data = EM_ASM_INT({
+                GetScores();
+                return 1;
+            });
+            
+            // for(int i = 0; i < 1; i++){
+            //     printf("GOT SCORES {username : %s, score : %i} %", global_FetchedScores[i].username, global_FetchedScores[i].score);
+            // }
         }
         
         if(Button((void *)&AppQuit, &im, global_UIRenderer,  Create_String("Quit"), 
@@ -870,7 +895,7 @@ void start(AppState *app_state){
     Resize_UpdatePositions();
     curr_pos = {start_pos.X + TILE_SIZE * 3, start_pos.Y + TILE_SIZE * (TILE_COUNT_Y - 2)};
     global_show_menuboard = true;
-    ReadDataFile("data.dat");
+    
     for(int x = 0; x < TILE_COUNT_X; x++){
         for(int y = 0; y < TILE_COUNT_Y; y++){
             global_tetris_board.tiles[x][y].color = TILE_CLR;

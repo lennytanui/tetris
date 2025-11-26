@@ -3,10 +3,19 @@
 #include <fstream>
 
 struct DataElement{
-    int id;
     int score;
-    String date;
-    String time;
+    std::string username;
+    std::string date;
+    std::string time;
+};
+
+
+struct DataElement_return{
+    int id;
+    char* username;
+    int score;
+    char* date;
+    char* time;
 };
 
 struct ReadDataResult{
@@ -15,23 +24,23 @@ struct ReadDataResult{
     int data_len;
 };
 
-int DE_SetChild(DataElement *de, String name, String value){
+int DE_SetChild(DataElement *de, std::string name, std::string value){
     int result = 1;
 
-    if(value.length == 0 || name.length == 0){
+    if(value.length() == 0 || name.length() == 0){
         result = 0;
         return result;
     }
     
-    if (IsStringEqual(name, Create_String("id"))) {
-        de->id = StringToInt(value);
-    } else if (IsStringEqual(name, Create_String("date"))){
+    if(name == "username"){
+        de->username = std::stoi(value);
+    }else if(name == "date"){
         de->date = value;
-    } else if (IsStringEqual(name, Create_String("time"))){
+    } else if(name == "time"){
         de->time = value;
-    } else if (IsStringEqual(name, Create_String("score"))){
-        de->score = StringToInt(value);
-    } else {
+    } else if(name == "score"){
+        de->score = std::stoi(value);
+    }else{
         result = 0;
     }
 
@@ -85,18 +94,16 @@ ReadDataResult ReadDataFile(const char *file_path){
             if(raw_line[0] == '#')
                 continue;
 
-            // printf("line : %s\n", &raw_line[0]);
-
             // take spaces off
             int is_name = true;
-            String name = Create_String("");
-            String value = Create_String("");
+            std::string name = "";
+            std::string value = "";
             for(int i = 0; i < raw_line.size(); i++){
                 if(raw_line[i] != ' ' && raw_line[i] != ':' && raw_line[i] != '\n'){
                     if(is_name){
-                        AddToString(&name, raw_line[i]);
+                        name += raw_line[i];
                     }else{
-                        AddToString(&value, raw_line[i]);
+                        value += raw_line[i];
                     }
                 }
 
@@ -105,12 +112,12 @@ ReadDataResult ReadDataFile(const char *file_path){
                 }   
             }
 
-            if(name.length == 0 || value.length == 0){
+            if(name.length() == 0 || value.length() == 0){
                 continue;
             }
 
             if(!DE_SetChild(&de, name, value)){
-                printf("error parsing data element-> {%s, %s}\n", name.val, value.val);
+                printf("error parsing data element-> {%s, %s}\n", name.c_str(), value.c_str());
             }
             // printf("%s : %s\n", name.val, value.val);
         }
@@ -135,10 +142,10 @@ void WriteDataFile(const char* file_path, DataElement *data, int data_len, int o
     {
         for(int i = 0; i < data_len; i++){
             myfile << "{\n";
-            myfile << " id : " << data[i].id<< "\n";
+            myfile << " id : " << data[i].username<< "\n";
             myfile << " score : " << data[i].score<< "\n";
-            myfile << " date : " << data[i].date.val << "\n";
-            myfile << " time : " << data[i].time.val << "\n";
+            myfile << " date : " << data[i].date << "\n";
+            myfile << " time : " << data[i].time << "\n";
             myfile << "}\n";
         }
         myfile.close();

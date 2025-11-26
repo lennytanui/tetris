@@ -42,6 +42,8 @@ struct AppState{
     unsigned int render_squares_count;
 };
 
+void RunJS(const char* function);
+
 float RandomFloat(float a, float b) {
     float random = ((float) rand()) / (float) RAND_MAX;
     float diff = b - a;
@@ -50,6 +52,9 @@ float RandomFloat(float a, float b) {
 }
 
 void SetCursorPosition(float xpos, float ypos);
+
+// void GetLeaderBoard(void *leaderboard);
+// extern "C" EMSCRIPTEN_KEEPALIVE void GetLeaderBoard_(void *leaderboard);
 
 void ReceiveCharacter(unsigned int codePoint);
 void NotesKeyPress(int key, int action);

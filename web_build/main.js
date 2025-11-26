@@ -29,7 +29,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\Lanny\AppData\Local\Temp\tmpjz0j5h9d.js
+// include: C:\Users\Lanny\AppData\Local\Temp\tmpdb2f98tz.js
 Module["expectedDataFileDownloads"] ??= 0;
 
 Module["expectedDataFileDownloads"]++;
@@ -338,23 +338,23 @@ Module["expectedDataFileDownloads"]++;
   });
 })();
 
-// end include: C:\Users\Lanny\AppData\Local\Temp\tmpjz0j5h9d.js
-// include: C:\Users\Lanny\AppData\Local\Temp\tmp8vhtfe_3.js
+// end include: C:\Users\Lanny\AppData\Local\Temp\tmpdb2f98tz.js
+// include: C:\Users\Lanny\AppData\Local\Temp\tmpzi6xjep1.js
 // All the pre-js content up to here must remain later on, we need to run
 // it.
 if ((typeof ENVIRONMENT_IS_WASM_WORKER != "undefined" && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != "undefined" && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != "undefined" && ENVIRONMENT_IS_AUDIO_WORKLET)) Module["preRun"] = [];
 
 var necessaryPreJSTasks = Module["preRun"].slice();
 
-// end include: C:\Users\Lanny\AppData\Local\Temp\tmp8vhtfe_3.js
-// include: C:\Users\Lanny\AppData\Local\Temp\tmpyx8h6tyg.js
+// end include: C:\Users\Lanny\AppData\Local\Temp\tmpzi6xjep1.js
+// include: C:\Users\Lanny\AppData\Local\Temp\tmp9fpac3qr.js
 if (!Module["preRun"]) throw "Module.preRun should exist because file support used it; did a pre-js delete it?";
 
 necessaryPreJSTasks.forEach(task => {
   if (Module["preRun"].indexOf(task) < 0) throw "All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?";
 });
 
-// end include: C:\Users\Lanny\AppData\Local\Temp\tmpyx8h6tyg.js
+// end include: C:\Users\Lanny\AppData\Local\Temp\tmp9fpac3qr.js
 var arguments_ = [];
 
 var thisProgram = "./this.program";
@@ -6092,6 +6092,10 @@ var _emscripten_resize_heap = requestedSize => {
   return false;
 };
 
+var _emscripten_run_script = ptr => {
+  eval(UTF8ToString(ptr));
+};
+
 /** @suppress {checkTypes} */ var _emscripten_sample_gamepad_data = () => {
   try {
     if (navigator.getGamepads) return (JSEvents.lastGamepadState = navigator.getGamepads()) ? 0 : -1;
@@ -7427,8 +7431,12 @@ function checkIncomingModuleAPI() {
 }
 
 var ASM_CONSTS = {
-  238504: () => (navigator.mediaDevices !== undefined && navigator.mediaDevices.getUserMedia !== undefined),
-  238608: () => {
+  238440: () => {
+    GetScores();
+    return 1;
+  },
+  238467: () => (navigator.mediaDevices !== undefined && navigator.mediaDevices.getUserMedia !== undefined),
+  238571: () => {
     try {
       var temp = new (window.AudioContext || window.webkitAudioContext);
       var sampleRate = temp.sampleRate;
@@ -7438,7 +7446,7 @@ var ASM_CONSTS = {
       return 0;
     }
   },
-  238779: $0 => {
+  238742: $0 => {
     var device = miniaudio.get_device_by_index($0);
     if (device.scriptNode !== undefined) {
       device.scriptNode.onaudioprocess = function(e) {};
@@ -7459,7 +7467,7 @@ var ASM_CONSTS = {
     }
     miniaudio.untrack_device_by_index($0);
   },
-  239405: ($0, $1, $2, $3, $4) => {
+  239368: ($0, $1, $2, $3, $4) => {
     var channels = $0;
     var sampleRate = $1;
     var bufferSize = $2;
@@ -7560,21 +7568,21 @@ var ASM_CONSTS = {
     }
     return miniaudio.track_device(device);
   },
-  243289: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
-  243355: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
-  243421: $0 => {
+  243252: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
+  243318: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
+  243384: $0 => {
     miniaudio.get_device_by_index($0).webaudio.resume();
   },
-  243478: $0 => {
+  243441: $0 => {
     miniaudio.get_device_by_index($0).webaudio.resume();
   },
-  243535: $0 => {
+  243498: $0 => {
     miniaudio.get_device_by_index($0).webaudio.suspend();
   },
-  243593: $0 => {
+  243556: $0 => {
     miniaudio.get_device_by_index($0).webaudio.suspend();
   },
-  243651: () => {
+  243614: () => {
     if ((window.AudioContext || window.webkitAudioContext) === undefined) {
       return 0;
     }
@@ -7621,6 +7629,8 @@ var _free = makeInvalidEarlyAccess("_free");
 
 var _malloc = Module["_malloc"] = makeInvalidEarlyAccess("_malloc");
 
+var _GetLeaderBoard = Module["_GetLeaderBoard"] = makeInvalidEarlyAccess("_GetLeaderBoard");
+
 var _main = Module["_main"] = makeInvalidEarlyAccess("_main");
 
 var _ma_device_process_pcm_frames_capture__webaudio = Module["_ma_device_process_pcm_frames_capture__webaudio"] = makeInvalidEarlyAccess("_ma_device_process_pcm_frames_capture__webaudio");
@@ -7656,6 +7666,7 @@ var _emscripten_stack_get_current = makeInvalidEarlyAccess("_emscripten_stack_ge
 function assignWasmExports(wasmExports) {
   _free = createExportWrapper("free", 1);
   Module["_malloc"] = _malloc = createExportWrapper("malloc", 1);
+  Module["_GetLeaderBoard"] = _GetLeaderBoard = createExportWrapper("GetLeaderBoard", 1);
   Module["_main"] = _main = createExportWrapper("main", 2);
   Module["_ma_device_process_pcm_frames_capture__webaudio"] = _ma_device_process_pcm_frames_capture__webaudio = createExportWrapper("ma_device_process_pcm_frames_capture__webaudio", 3);
   Module["_ma_device_process_pcm_frames_playback__webaudio"] = _ma_device_process_pcm_frames_playback__webaudio = createExportWrapper("ma_device_process_pcm_frames_playback__webaudio", 3);
@@ -7710,6 +7721,7 @@ var wasmImports = {
   /** @export */ emscripten_request_fullscreen: _emscripten_request_fullscreen,
   /** @export */ emscripten_request_pointerlock: _emscripten_request_pointerlock,
   /** @export */ emscripten_resize_heap: _emscripten_resize_heap,
+  /** @export */ emscripten_run_script: _emscripten_run_script,
   /** @export */ emscripten_sample_gamepad_data: _emscripten_sample_gamepad_data,
   /** @export */ emscripten_set_blur_callback_on_thread: _emscripten_set_blur_callback_on_thread,
   /** @export */ emscripten_set_focus_callback_on_thread: _emscripten_set_focus_callback_on_thread,

@@ -8,6 +8,10 @@ enum APPS {
 
 enum APPS currentApp = TETRIS;
 
+void RunJS(const char *function){
+    emscripten_run_script(function);
+}
+
 void app_start(AppState *app_state){
     printf("App  Started..\n");
 
