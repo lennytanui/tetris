@@ -272,9 +272,9 @@ void UIRenderer::SetupTextRenderer(int window_width, int window_height){
 }
 
 void UIRenderer::RenderText(Text text, float scale, HMM_Vec3 color, HMM_Vec2 position){
-    String string = text.string;
+    std::string string = text.string;
 
-    if(!string.val || string.length <= 0)
+    if(string.length() <= 0)
         return;
     
     HMM_Vec2 originalPosition = position;
@@ -293,8 +293,11 @@ void UIRenderer::RenderText(Text text, float scale, HMM_Vec3 color, HMM_Vec2 pos
 
     // iterate through all characters
     std::string::const_iterator c;
-    for (int i = 0; i < string.length; i++){
-        char c = string.val[i];
+
+    int i = 0;
+    for (auto it = string.begin(); it != string.end(); ++it){
+        char c = *it;
+        // it->
 
         Character ch = m_cts[0].characters[c];
 
@@ -329,6 +332,7 @@ void UIRenderer::RenderText(Text text, float scale, HMM_Vec3 color, HMM_Vec2 pos
             position.Y -= 48;
             position.X = originalPosition.X;
         }
+        i++;
     }
 
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -340,9 +344,10 @@ void UIRenderer::RenderText(Text text, float scale, HMM_Vec3 color, HMM_Vec2 pos
 }
 
 
-void UIRenderer::DrawText(String string, float scale, HMM_Vec2 position, HMM_Vec3 color){
-    Text text = {0};
-    text.string = string;
+void UIRenderer::DrawText(std::string string, float scale, HMM_Vec2 position, HMM_Vec3 color){
+    Text text = {};
+    text.string = std::string(string.c_str());
+    
     RenderText(text, scale, color, position);
 }
 

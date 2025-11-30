@@ -185,7 +185,7 @@ unsigned int UI_End(InputManager *im){
 }
 
 #define BUTTON_PADDING 5.0f;
-unsigned int Button(void *id, InputManager *im, UIRenderer *renderer, String label, HMM_Vec2 pos, RGBA color){
+unsigned int Button(void *id, InputManager *im, UIRenderer *renderer, std::string label, HMM_Vec2 pos, RGBA color){
 
     int result = 0;
     float scale = 1.0f; // should be passed in 
@@ -193,8 +193,9 @@ unsigned int Button(void *id, InputManager *im, UIRenderer *renderer, String lab
     Character tallest = {};
     char c = '0';
     float textWidth = 0.0f;
-    for(int i = 0; i < label.length; i++){
-        c = label.val[i];
+
+    for(auto it = label.begin(); it != label.end(); ++it){
+        c = *it;
         // Note (Lenny) : should have variable for active character table
         Character ch = renderer->GetCharacterTable()[0].characters[c];
         if(ch.size.Y > tallest.size.Y){
@@ -255,8 +256,9 @@ unsigned int Button(void *id, InputManager *im, UIRenderer *renderer, String lab
     renderer->DrawRect(pos, width, height, color, "assets/white_texture.jpg");    
 
     unsigned int error = glGetError();
-    Text text = {0};
-    text.string = label;
+    Text text = {};
+    text.string = std::string(label.c_str());
+    
     text.oneLine = true;
 
     renderer->RenderText(text, scale, HMM_Vec3{255.0f / 255.0f, 231.0f / 255.0f, 147.0f / 255.0f}, HMM_Vec2{textPos.X, textPos.Y});
@@ -381,7 +383,7 @@ PanelState Panel(void *id, InputManager *im, UIRenderer *renderer, const char *b
     return result;
 }
 
-unsigned int DrawUIText(UIRenderer *renderer, InputManager *im, float scale, String label, HMM_Vec2 pos,  HMM_Vec3 color){
+unsigned int DrawUIText(UIRenderer *renderer, InputManager *im, float scale, std::string label, HMM_Vec2 pos,  HMM_Vec3 color){
     pos += im->parent_pos;
     pos.Y += 48 * scale;
 

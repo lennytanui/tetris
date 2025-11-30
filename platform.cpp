@@ -7,8 +7,8 @@
 #ifdef _WIN32
 #include <GLFW/glfw3.h>
 #else
-#include <GLFW/emscripten_glfw3.h>
 #include <emscripten/html5.h>
+#include <GLFW/emscripten_glfw3.h>
 #include <EGL/egl.h>
 #include <GLES3/gl3.h>
 #endif

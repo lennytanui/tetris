@@ -42,13 +42,53 @@ struct AppState{
     unsigned int render_squares_count;
 };
 
+#if GLFW_PLATFORM_EMSCRIPTEN
 void RunJS(const char* function);
+#endif
 
 float RandomFloat(float a, float b) {
     float random = ((float) rand()) / (float) RAND_MAX;
     float diff = b - a;
     float r = random * diff;
     return a + r;
+}
+
+std::string NumToString(float val){
+    std::string result = "";
+    char strBuffer[32] = {0};
+    for(int i = 0; i < 32; i++){
+        strBuffer[i] = '\0';
+    }
+
+    if(val != std::floor(val)){
+        std::snprintf(strBuffer, sizeof(strBuffer), "%.04f", val);
+    }else{
+        std::snprintf(strBuffer, sizeof(strBuffer), "%i", (int)val);
+    }
+
+    strBuffer[31] = '\0';
+    if(val != std::floor(val)){
+        for(int i = 30; i > 0; i--){
+            if(strBuffer[i] == '.'){
+                break;
+            }
+
+            if(strBuffer[i] == '\0'){
+                continue;
+            }
+
+            if(strBuffer[i] != '0'){
+                break;
+            }
+
+            if(strBuffer[i] == '0'){
+                strBuffer[i] = '\0';
+            }          
+        }
+    }
+
+    result = std::string(strBuffer);
+    return result;
 }
 
 void SetCursorPosition(float xpos, float ypos);

@@ -16,7 +16,7 @@ struct CharacterTable{
 
 struct Text{
     // Max buffer size for each string is 1024
-    String string;
+    std::string string;
 
     int cursorRow;
     int cursorColumn;

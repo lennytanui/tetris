@@ -8,11 +8,17 @@ enum APPS {
 
 enum APPS currentApp = TETRIS;
 
+#if GLFW_PLATFORM_EMSCRIPTEN    
 void RunJS(const char *function){
     emscripten_run_script(function);
 }
+#endif
 
 void app_start(AppState *app_state){
+    std::string val = NumToString(55.14);
+    printf("Int to String %s\n", val.c_str());
+
+
     printf("App  Started..\n");
 
     app_state->window_width = global_frame_buffer_width;

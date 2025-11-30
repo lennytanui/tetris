@@ -62,7 +62,7 @@ public:
     void UpdateTextRendererDimensions(int window_width, int window_height);
     void SetupTextRenderer(int window_width, int window_height);
     void RenderText(Text text, float scale, HMM_Vec3 color, HMM_Vec2 position);
-    void DrawText(String string, float scale, HMM_Vec2 position, HMM_Vec3 color);
+    void DrawText(std::string string, float scale, HMM_Vec2 position, HMM_Vec3 color);
     void DrawText(Text text, float scale, HMM_Vec2 position, HMM_Vec3 color);
     void CleanTextRenderer();
 

@@ -10,6 +10,11 @@
 #include "str.c"
 #include "utils.h"
 
+#if GLFW_PLATFORM_EMSCRIPTEN
+#include <emscripten.h>
+#include <emscripten\val.h>
+#endif
+
 #include <random>
 #include <fstream>
 
@@ -84,6 +89,24 @@ struct ScoreDataManager{
     Score *scores;
 };
 
+
+struct PlayerScore{
+    int id;
+    std::string username;
+    int score;
+    std::string date;
+    std::string time;
+};
+
+std::vector<PlayerScore> global_FetchedScores;
+
+#if GLFW_PLATFORM_EMSCRIPTEN
+EM_ASYNC_JS(emscripten::EM_VAL, GetScores, (void), {
+    var scores = await GetScores();
+    return Emval.toHandle(scores);
+});
+#endif
+
 AppState global_app_state = {0};
 
 Tetris_Board global_tetris_board = {};
@@ -143,9 +166,6 @@ static bool mobileSliding = false;
 static HMM_Vec2 initialPiecePos = {0}; // for mobile sliding
 static float slideTime = 0.0f;
 static float verticalSlideTime = 0.5f;
-
-
-DataElement_return *global_FetchedScores = 0;
 
 void SetCursorPosition(float x, float y){
     
@@ -468,30 +488,63 @@ void SaveScore(int score){
     newScore += "time : '"+ de.time + "',";
     newScore += "date : '"+ de.date + "'";
     newScore += "})";
+
+    printf("New Score %s\n", newScore.c_str());
     
+    #if GLFW_PLATFORM_EMSCRIPTEN
     RunJS(newScore.c_str());
+    #endif
 }
 
-extern "C" EMSCRIPTEN_KEEPALIVE void GetLeaderBoard(void *leaderboard){
+#if GLFW_PLATFORM_EMSCRIPTEN
+extern "C" EMSCRIPTEN_KEEPALIVE void GetLeaderBoard(){
 
-    printf("LeaderBoardFunction Called\n");
-    // int data = EM_ASM_INT({
-    //         let result = await GetScores();
-    //         result.then(val => {
-    //             console.log("Promise Result = ", val);
-    //         });
-    //         console.log(result);
-    //         return 1;
-    //     });
+    emscripten::val obj = emscripten::val::take_ownership(GetScores());
+    
+    std::string type = obj.typeOf().as<std::string>();
+    printf("Object type: %s\n", type.c_str());
 
-    //     printf("Returned Data --- %i\n");
-    DataElement_return global_FetchedScores = (DataElement_return *)leaderboard;
-    printf("FETCH DATA {score : %i,}\n", global_FetchedScores->score);
+    emscripten::val score_object = obj[1];
 
-    free(global_FetchedScores->username);
-    free(global_FetchedScores->date);
-    free(global_FetchedScores->time);
+    int id = score_object["id"].as<int>();
+    std::string username = score_object["username"].as<std::string>();
+    int score = score_object["score"].as<int>();
+    
+    // Note: date and time can be accessed similarly as std::string
+    // std::string date = score_object["date"].as<std::string>();
+
+    // Print the extracted data
+    std::cout << "  ID: " << id << std::endl;
+    std::cout << "  Username: " << username << std::endl;
+    std::cout << "  Score: " << score << std::endl;
+
+    for(int i = 0; i < 3; i++){
+        int id = obj[i]["id"].as<int>();
+        std::string username = obj[0]["username"].as<std::string>();
+        int score = obj[i]["score"].as<int>();
+        std::string date = obj[i]["date"].as<std::string>();
+        std::string time = obj[i]["time"].as<std::string>();
+
+        PlayerScore playerScore = {0};
+        playerScore.username = username;
+        playerScore.score = score;
+        playerScore.date = date;
+        playerScore.time = time;
+
+        global_FetchedScores.push_back(playerScore);
+
+        printf("--- FETCHED VALUES [%i] ---\n", i);
+
+        printf("    ID : %i\n", id);
+        printf("    USERNAME : %s\n", username.c_str());
+        printf("    SCORE : %i\n", score);
+        printf("    DATE : %s\n", date.c_str());
+        printf("    TIME : %s\n", time.c_str());
+        
+        printf("--- END ---\n");
+    }
 }
+#endif
 
 void ResetParticleManager(ParticleManager *pm, HMM_Vec2 position){
     if(!pm->ready){
@@ -646,15 +699,16 @@ void draw(AppState *app_state, float dt){
         }
 
     }
-
+    
     // draw held block background
-    global_UIRenderer->DrawText(Create_String("HOLD"), 0.5f, 
+    global_UIRenderer->DrawText("HOLD", 0.5f, 
         {held_blck_pos.X + TILE_SIZE * 1, held_blck_pos.Y + TILE_SIZE * 5.5f}, 
         {125.0f, 125.0f, 125.0f});
+    
+    // printf("Got here? 1 %s\n", text.string.c_str());
     Render_Square *render_square = create_render_square(app_state,
         {held_blck_pos.X, held_blck_pos.Y, 1.0f, 1.0f}, {TILE_SIZE * 4, TILE_SIZE * 4}, 
             {70.0f, 70.0f, 70.0f, 255.0f}, {70.0f, 70.0f, 70.0f, 255.0f}, whiteTextureSlot);
-
     // draw held block 
     if(held_blck_parent.rotations_count > 0){
         for(int i = 0; i < 4; i++){
@@ -683,12 +737,12 @@ void draw(AppState *app_state, float dt){
             menu_size, {60.0f, 60.0f, 60.0f, 255.0f}, 
             {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
 
-        global_UIRenderer->DrawText(Create_String("PAUSE"), 1.2f, 
+        global_UIRenderer->DrawText("PAUSE", 1.2f, 
         {menu_position.X + TILE_SIZE * 3, 
             menu_position.Y + menu_size.Y - TILE_SIZE * 3.0f}, 
         {125.0f, 125.0f, 125.0f});
         
-        if(Button((void *)AppQuit, &im, global_UIRenderer,  Create_String("Quit"), 
+        if(Button((void *)AppQuit, &im, global_UIRenderer,  "Quit", 
             HMM_Vec2{menu_position.X + TILE_SIZE * 3, 
             menu_position.Y + menu_size.Y - TILE_SIZE * 7.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
@@ -696,14 +750,14 @@ void draw(AppState *app_state, float dt){
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
 
-        if(Button((void *)draw, &im, global_UIRenderer,  Create_String("Continue"), 
+        if(Button((void *)draw, &im, global_UIRenderer,  "Continue", 
             HMM_Vec2{menu_position.X + TILE_SIZE * 3, 
             menu_position.Y + menu_size.Y - TILE_SIZE * 9.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             global_pause = false;
         }
         
-        if(Button((void *)draw, &im, global_UIRenderer,  Create_String("Settings"), 
+        if(Button((void *)draw, &im, global_UIRenderer,  "Settings", 
             HMM_Vec2{menu_position.X + TILE_SIZE * 3, 
             menu_position.Y + menu_size.Y - TILE_SIZE * 11.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
@@ -717,27 +771,27 @@ void draw(AppState *app_state, float dt){
             menu_size, {60.0f, 60.0f, 60.0f, 255.0f}, 
             {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
 
-        global_UIRenderer->DrawText(Create_String("GAME OVER!"), 0.9f, 
+        global_UIRenderer->DrawText("GAME OVER!", 0.9f, 
         {menu_position.X + TILE_SIZE * 1, 
             menu_position.Y + menu_size.Y - TILE_SIZE * 3.0f}, 
         {125.0f, 125.0f, 125.0f});
         
         
-        String high_score_str = Create_String("High Score : ");
-        AddToString(&high_score_str, 555);
+        std::string high_score_str = "High Score : ";
+        high_score_str += NumToString(555);
         global_UIRenderer->DrawText(high_score_str, 0.8f, 
         {menu_position.X + TILE_SIZE * 1, 
             menu_position.Y + menu_size.Y - TILE_SIZE * 5.0f},
             {200.0f, 200.0f, 200.0f});
 
-        String score_string = Create_String("SCORE - ");
-        AddToString(&score_string, global_last_game_score);
+        std::string score_string = "SCORE - ";
+        score_string += NumToString(global_last_game_score);
         global_UIRenderer->DrawText(score_string, 0.8f, 
         {menu_position.X + TILE_SIZE * 1, 
             menu_position.Y + menu_size.Y - TILE_SIZE * 7.0f}, 
         {125.0f, 125.0f, 125.0f});
 
-        if(Button((void *)AppQuit, &im, global_UIRenderer,  Create_String("Menu"), 
+        if(Button((void *)AppQuit, &im, global_UIRenderer, "Menu", 
             HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
             menu_position.Y + menu_size.Y - TILE_SIZE * 9.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
@@ -745,7 +799,7 @@ void draw(AppState *app_state, float dt){
         }
 
 
-        if(Button((void *)draw, &im, global_UIRenderer,  Create_String("Restart"), 
+        if(Button((void *)draw, &im, global_UIRenderer,  "Restart", 
             HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
             menu_position.Y + menu_size.Y - TILE_SIZE * 9.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
@@ -771,7 +825,7 @@ void draw(AppState *app_state, float dt){
             menu_size, {60.0f, 60.0f, 60.0f, 255.0f}, 
             {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
 
-        global_UIRenderer->DrawText(Create_String("LEADERBOARD"), 0.9f, 
+        global_UIRenderer->DrawText("LEADERBOARD", 0.9f, 
         {menu_position.X + TILE_SIZE * 1, 
             menu_position.Y + menu_size.Y - TILE_SIZE * 3.0f}, 
         {125.0f, 125.0f, 125.0f});
@@ -782,14 +836,11 @@ void draw(AppState *app_state, float dt){
         // for(int i = 0; i < 1; i++){
         //     printf("Scoreglobal_FetchedScores[i];
         // }
-
-
+        
         float y_pos = 5.0f;
-        #if 0
-        for(int i = 0; i < rdr.data_len; i++){
-            if(i >= 5){
-                break;
-            }
+        int i = 0;
+        for (auto it = global_FetchedScores.begin(); it != global_FetchedScores.end(); ++it) {
+        
             float leader_board_score_height = TILE_SIZE + 48;
 
             if(i % 2 == 0){
@@ -804,19 +855,16 @@ void draw(AppState *app_state, float dt){
                 {80.0f, 80.0f, 80.0f, 255.0f}, {80.0f, 80.0f, 80.0f, 255.0f}, whiteTextureSlot);
             }
 
-
-            String score_string = Create_String("Score : ");
-            AddToString(&score_string, rdr.data[i].score);
-            global_UIRenderer->DrawText(score_string, 0.9f, 
+            global_UIRenderer->DrawText(std::to_string(it->score).c_str(), 0.9f, 
             {menu_position.X + TILE_SIZE * 1, 
                 menu_position.Y + menu_size.Y - TILE_SIZE * y_pos + 48 * 0.5f}, 
             {125.0f, 125.0f, 125.0f});
 
             y_pos += 2;
+            i++;
         }
-        #endif
-
-        if(Button(&global_show_leaderboard, &im, global_UIRenderer,  Create_String("Back"), 
+        
+        if(Button(&global_show_leaderboard, &im, global_UIRenderer,  "Back", 
             HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
             menu_position.Y + menu_size.Y - TILE_SIZE * y_pos}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
@@ -832,13 +880,13 @@ void draw(AppState *app_state, float dt){
             menu_size, 
         {60.0f, 60.0f, 60.0f, 255.0f}, {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
 
-        global_UIRenderer->DrawText(Create_String("MENU"), 0.9f, 
+        global_UIRenderer->DrawText("MENU", 0.9f, 
         {menu_position.X + TILE_SIZE * 1, 
             menu_position.Y + menu_size.Y - TILE_SIZE * 3.0f}, 
         {125.0f, 125.0f, 125.0f});
-
+        
         float y_pos = 5.0f;
-        if(Button(&global_pause, &im, global_UIRenderer,  Create_String("Play"), 
+        if(Button(&global_pause, &im, global_UIRenderer,  "Play", 
             HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
             menu_position.Y + menu_size.Y - TILE_SIZE * y_pos}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
@@ -860,24 +908,19 @@ void draw(AppState *app_state, float dt){
             global_show_menuboard = false;
         }
 
-        if(Button(&global_show_leaderboard, &im, global_UIRenderer,  Create_String("Leaderboard"), 
+        if(Button(&global_show_leaderboard, &im, global_UIRenderer,  "Leaderboard", 
             HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
             menu_position.Y + menu_size.Y - TILE_SIZE * (y_pos + 2)}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
                 global_show_leaderboard = true;
                 global_show_menuboard = false;
             
-            int data = EM_ASM_INT({
-                GetScores();
-                return 1;
-            });
-            
-            // for(int i = 0; i < 1; i++){
-            //     printf("GOT SCORES {username : %s, score : %i} %", global_FetchedScores[i].username, global_FetchedScores[i].score);
-            // }
+            #if GLFW_PLATFORM_EMSCRIPTEN
+                GetLeaderBoard();
+            #endif
         }
         
-        if(Button((void *)&AppQuit, &im, global_UIRenderer,  Create_String("Quit"), 
+        if(Button((void *)&AppQuit, &im, global_UIRenderer,  "Quit", 
             HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
             menu_position.Y + menu_size.Y - TILE_SIZE * (y_pos + 4)}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
@@ -1144,11 +1187,13 @@ void update(AppState *app_state, float dt){
     camera_shake(&app_state->cam_pos, dt);
 
     draw(app_state, dt);
-    String score_str = Create_String("SCORE : ");
-    AddToString(&score_str, global_score);
+    std::string score_str = "SCORE : ";
+    // AddToString(&score_str, global_score);
+    score_str += NumToString(global_score);
     
-    String framet_str = Create_String("DT : ");
-    String fps_str = Create_String("FPS : ");
+
+    std::string framet_str = "DT : ";
+    std::string fps_str = "FPS : ";
     
     static float framet_val_avg_updated = dt; 
     static float framet_val_avg = dt; 
@@ -1176,8 +1221,11 @@ void update(AppState *app_state, float dt){
         time_to_update_fps += dt;
         fps_count += 1;
     }
-    AddToString(&framet_str, framet_val_avg_updated * 10 * 10 * 10);
-    AddToString(&fps_str, fps_count_avg);
+    // AddToString(&framet_str, framet_val_avg_updated * 10 * 10 * 10);
+    framet_str += NumToString(framet_val_avg_updated * 10 * 10 * 10);
+
+    // AddToString(&fps_str, fps_count_avg);
+    fps_str += NumToString((int)fps_count_avg);
     
     HMM_Vec2 framet_pos = {start_pos.X + TILE_SIZE * (TILE_COUNT_X + 1), held_blck_pos.Y + TILE_SIZE * 2.5f};
     HMM_Vec2 fps_pos = {start_pos.X + TILE_SIZE * (TILE_COUNT_X + 1), held_blck_pos.Y + TILE_SIZE * 0.5f};
