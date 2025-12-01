@@ -501,24 +501,13 @@ extern "C" EMSCRIPTEN_KEEPALIVE void GetLeaderBoard(){
 
     emscripten::val obj = emscripten::val::take_ownership(GetScores());
     
-    std::string type = obj.typeOf().as<std::string>();
-    printf("Object type: %s\n", type.c_str());
-
-    emscripten::val score_object = obj[1];
-
-    int id = score_object["id"].as<int>();
-    std::string username = score_object["username"].as<std::string>();
-    int score = score_object["score"].as<int>();
     
     // Note: date and time can be accessed similarly as std::string
     // std::string date = score_object["date"].as<std::string>();
 
     // Print the extracted data
-    std::cout << "  ID: " << id << std::endl;
-    std::cout << "  Username: " << username << std::endl;
-    std::cout << "  Score: " << score << std::endl;
-
-    for(int i = 0; i < 3; i++){
+    int length = obj["length"].as<int>();
+    for(int i = 0; i < length; i++){
         int id = obj[i]["id"].as<int>();
         std::string username = obj[0]["username"].as<std::string>();
         int score = obj[i]["score"].as<int>();
@@ -546,24 +535,64 @@ extern "C" EMSCRIPTEN_KEEPALIVE void GetLeaderBoard(){
 }
 #endif
 
-void ResetParticleManager(ParticleManager *pm, HMM_Vec2 position){
-    if(!pm->ready){
-        *pm = {0};
-        pm->count = 100;
-        pm->ready = true;
-        pm->life_time = 1.0f;
 
-        for(int i = 0; i < pm->count; i++){
-            Particle *particle = &pm->particles[i];
-            // particle->acceleration = {0.5f,0.5f};
-            float randx = RandomFloat(0.1, 0.5) * 12.7;
-            float randy = RandomFloat(-0.5, 0.5) * 1.1;
-            particle->acceleration.X = randx; // rand
-            particle->acceleration.Y = randy;
-            particle->position = position;
-            particle->size = {10, 10};
-            particle->color = {RandomFloat(30, 255.0f), RandomFloat(30, 255.0f), RandomFloat(30, 255.0f), 255.0f};
+void DrawLeaderBoard(HMM_Vec2 pos, HMM_Vec2 size){
+    unsigned whiteTextureSlot = global_textureManager->GetTextureSlot("assets/white_texture.jpg");
+
+    PanelState ps = Panel(&whiteTextureSlot, &im, global_UIRenderer, "assets/white_texture.jpg", pos, size);
+    
+    float y_pos = 2.0f;
+    int i = 0;
+    HMM_Vec2 panelPos = pos;
+    HMM_Vec2 panelSize = size;
+    AppState *app_state = &global_app_state;
+
+    global_UIRenderer->DrawText("LEADERBOARD", 0.9f, 
+        {panelPos.X + TILE_SIZE * 1, 
+            panelPos.Y + panelSize.Y}, 
+        {125.0f, 125.0f, 125.0f});
+
+    float leader_board_score_height = 48;
+
+    for (auto it = global_FetchedScores.begin(); it != global_FetchedScores.end(); ++it) {
+    
+        RGBA colorOne = {96.0f, 95.0f, 94.0f, 255.0f};
+        RGBA colorTwo = {188.0f, 172.0f, 155.0f, 255.0f};
+        if(i % 2 == 0){
+            create_render_square(app_state, {panelPos.X,
+                panelPos.Y + panelSize.Y - leader_board_score_height * y_pos, 0.0f, 1.0f}, 
+                {panelSize.X, leader_board_score_height }, 
+            colorOne, colorOne, whiteTextureSlot);
+        } else {
+            create_render_square(app_state, {panelPos.X,
+                panelPos.Y + panelSize.Y - leader_board_score_height * y_pos, 0.0f, 1.0f}, 
+                {panelSize.X, leader_board_score_height }, 
+            colorTwo, colorTwo, whiteTextureSlot);
         }
+
+        global_UIRenderer->DrawText(std::to_string(it->score).c_str(), 0.5f, 
+        {panelPos.X + TILE_SIZE * 1, 
+            panelPos.Y + panelSize.Y - leader_board_score_height * y_pos + 48 * 0.4f}, 
+        {125.0f, 125.0f, 125.0f});
+
+        y_pos += 1;
+        i++;
+    }
+
+    RGBA sliderColor = {200.0f, 200.0f, 200.0f, 255.0f};
+    HMM_Vec2 sliderSize = {20.0f, 100.0f};
+    HMM_Vec2 sliderPos = {panelPos.X + panelSize.X, panelPos.Y};
+    sliderPos.X -= sliderSize.X;
+    
+    global_UIRenderer->DrawRect(sliderPos, sliderSize.X, sliderSize.Y, sliderColor, "assets/white_texture.jpg");
+
+    if(Button(&global_show_leaderboard, &im, global_UIRenderer,  "Back", 
+        HMM_Vec2{panelPos.X + TILE_SIZE * 1, 
+        panelPos.Y + panelSize.Y - leader_board_score_height * y_pos}, 
+            {0.3f, 0.3f, 0.3f, 1.0f})){
+        
+        global_show_leaderboard = false;
+        global_show_menuboard = true;
     }
 }
 
@@ -587,7 +616,6 @@ void UpdateDimensions(){
     Resize_UpdatePositions();
     
     global_UIRenderer->UpdateTextRendererDimensions(global_ortho_width, global_ortho_height);
-    // global_app_state.proj = HMM_Orthographic_LH_NO(0.0f, global_frame_buffer_width, 0.0f, global_frame_buffer_height, 0.0f, 10.0f);
 
     global_app_state.proj = HMM_Orthographic_LH_NO(0.0f, 1000, 0.0f, global_ortho_height, 0.0f, 10.0f);
 }
@@ -819,16 +847,14 @@ void draw(AppState *app_state, float dt){
         }
     }
 
-    // show leader board    
+    // show leader board  
+    global_show_leaderboard = true;  
     if(global_show_leaderboard){
-        create_render_square(app_state, HMM_Vec4{menu_position.X, menu_position.Y, 0.0f, 1.0f}, 
-            menu_size, {60.0f, 60.0f, 60.0f, 255.0f}, 
-            {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
+        // create_render_square(app_state, HMM_Vec4{menu_position.X, menu_position.Y, 0.0f, 1.0f}, 
+        //     menu_size, {60.0f, 60.0f, 60.0f, 255.0f}, 
+        //     {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
 
-        global_UIRenderer->DrawText("LEADERBOARD", 0.9f, 
-        {menu_position.X + TILE_SIZE * 1, 
-            menu_position.Y + menu_size.Y - TILE_SIZE * 3.0f}, 
-        {125.0f, 125.0f, 125.0f});
+        
 
         
         // ReadDataResult rdr = ReadDataFile("data.dat");
@@ -837,45 +863,14 @@ void draw(AppState *app_state, float dt){
         //     printf("Scoreglobal_FetchedScores[i];
         // }
         
-        float y_pos = 5.0f;
-        int i = 0;
-        for (auto it = global_FetchedScores.begin(); it != global_FetchedScores.end(); ++it) {
+        DrawLeaderBoard(HMM_Vec2{menu_position.X, menu_position.Y}, HMM_Vec2{menu_size.X, menu_size.Y});
         
-            float leader_board_score_height = TILE_SIZE + 48;
-
-            if(i % 2 == 0){
-                create_render_square(app_state, {menu_position.X,
-                    menu_position.Y + menu_size.Y - TILE_SIZE * y_pos, 0.0f, 1.0f}, 
-                    {menu_size.X, leader_board_score_height }, 
-                {20.0f, 20.0f, 20.0f, 255.0f}, {20.0f, 20.0f, 20.0f, 255.0f}, whiteTextureSlot);
-            } else {
-                create_render_square(app_state, {menu_position.X,
-                    menu_position.Y + menu_size.Y - TILE_SIZE * y_pos, 0.0f, 1.0f}, 
-                    {menu_size.X, leader_board_score_height }, 
-                {80.0f, 80.0f, 80.0f, 255.0f}, {80.0f, 80.0f, 80.0f, 255.0f}, whiteTextureSlot);
-            }
-
-            global_UIRenderer->DrawText(std::to_string(it->score).c_str(), 0.9f, 
-            {menu_position.X + TILE_SIZE * 1, 
-                menu_position.Y + menu_size.Y - TILE_SIZE * y_pos + 48 * 0.5f}, 
-            {125.0f, 125.0f, 125.0f});
-
-            y_pos += 2;
-            i++;
-        }
         
-        if(Button(&global_show_leaderboard, &im, global_UIRenderer,  "Back", 
-            HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
-            menu_position.Y + menu_size.Y - TILE_SIZE * y_pos}, 
-                {0.3f, 0.3f, 0.3f, 1.0f})){
-            
-            global_show_leaderboard = false;
-            global_show_menuboard = true;
-        }
     }
 
     // show menu board
-    if(global_show_menuboard){
+    
+    if(global_show_menuboard && false){
         create_render_square(app_state, HMM_Vec4{menu_position.X, menu_position.Y, 0.0f, 1.0f}, 
             menu_size, 
         {60.0f, 60.0f, 60.0f, 255.0f}, {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
@@ -934,7 +929,7 @@ void draw(AppState *app_state, float dt){
 }
 
 void start(AppState *app_state){
-
+    GetLeaderBoard();
     Resize_UpdatePositions();
     curr_pos = {start_pos.X + TILE_SIZE * 3, start_pos.Y + TILE_SIZE * (TILE_COUNT_Y - 2)};
     global_show_menuboard = true;

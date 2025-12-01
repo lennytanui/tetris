@@ -29,7 +29,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\Lanny\AppData\Local\Temp\tmpey4bodc6.js
+// include: C:\Users\Lanny\AppData\Local\Temp\tmpdq9t7zs7.js
 Module["expectedDataFileDownloads"] ??= 0;
 
 Module["expectedDataFileDownloads"]++;
@@ -338,23 +338,23 @@ Module["expectedDataFileDownloads"]++;
   });
 })();
 
-// end include: C:\Users\Lanny\AppData\Local\Temp\tmpey4bodc6.js
-// include: C:\Users\Lanny\AppData\Local\Temp\tmp101kja5t.js
+// end include: C:\Users\Lanny\AppData\Local\Temp\tmpdq9t7zs7.js
+// include: C:\Users\Lanny\AppData\Local\Temp\tmph_t1or7x.js
 // All the pre-js content up to here must remain later on, we need to run
 // it.
 if ((typeof ENVIRONMENT_IS_WASM_WORKER != "undefined" && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != "undefined" && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != "undefined" && ENVIRONMENT_IS_AUDIO_WORKLET)) Module["preRun"] = [];
 
 var necessaryPreJSTasks = Module["preRun"].slice();
 
-// end include: C:\Users\Lanny\AppData\Local\Temp\tmp101kja5t.js
-// include: C:\Users\Lanny\AppData\Local\Temp\tmpazjfy4jp.js
+// end include: C:\Users\Lanny\AppData\Local\Temp\tmph_t1or7x.js
+// include: C:\Users\Lanny\AppData\Local\Temp\tmprn034j7_.js
 if (!Module["preRun"]) throw "Module.preRun should exist because file support used it; did a pre-js delete it?";
 
 necessaryPreJSTasks.forEach(task => {
   if (Module["preRun"].indexOf(task) < 0) throw "All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?";
 });
 
-// end include: C:\Users\Lanny\AppData\Local\Temp\tmpazjfy4jp.js
+// end include: C:\Users\Lanny\AppData\Local\Temp\tmprn034j7_.js
 var arguments_ = [];
 
 var thisProgram = "./this.program";
@@ -4964,11 +4964,6 @@ var __emval_run_destructors = handle => {
   __emval_decref(handle);
 };
 
-var __emval_typeof = handle => {
-  handle = Emval.toValue(handle);
-  return Emval.toHandle(typeof handle);
-};
-
 var __tzset_js = (timezone, daylight, std_name, dst_name) => {
   // TODO: Use (malleable) environment variables instead of system settings.
   var currentYear = (new Date).getFullYear();
@@ -8380,8 +8375,8 @@ function checkIncomingModuleAPI() {
 }
 
 var ASM_CONSTS = {
-  240643: () => (navigator.mediaDevices !== undefined && navigator.mediaDevices.getUserMedia !== undefined),
-  240747: () => {
+  240659: () => (navigator.mediaDevices !== undefined && navigator.mediaDevices.getUserMedia !== undefined),
+  240763: () => {
     try {
       var temp = new (window.AudioContext || window.webkitAudioContext);
       var sampleRate = temp.sampleRate;
@@ -8391,7 +8386,7 @@ var ASM_CONSTS = {
       return 0;
     }
   },
-  240918: $0 => {
+  240934: $0 => {
     var device = miniaudio.get_device_by_index($0);
     if (device.scriptNode !== undefined) {
       device.scriptNode.onaudioprocess = function(e) {};
@@ -8412,7 +8407,7 @@ var ASM_CONSTS = {
     }
     miniaudio.untrack_device_by_index($0);
   },
-  241544: ($0, $1, $2, $3, $4) => {
+  241560: ($0, $1, $2, $3, $4) => {
     var channels = $0;
     var sampleRate = $1;
     var bufferSize = $2;
@@ -8513,21 +8508,21 @@ var ASM_CONSTS = {
     }
     return miniaudio.track_device(device);
   },
-  245428: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
-  245494: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
-  245560: $0 => {
+  245444: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
+  245510: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
+  245576: $0 => {
     miniaudio.get_device_by_index($0).webaudio.resume();
   },
-  245617: $0 => {
+  245633: $0 => {
     miniaudio.get_device_by_index($0).webaudio.resume();
   },
-  245674: $0 => {
+  245690: $0 => {
     miniaudio.get_device_by_index($0).webaudio.suspend();
   },
-  245732: $0 => {
+  245748: $0 => {
     miniaudio.get_device_by_index($0).webaudio.suspend();
   },
-  245790: () => {
+  245806: () => {
     if ((window.AudioContext || window.webkitAudioContext) === undefined) {
       return 0;
     }
@@ -8767,7 +8762,6 @@ var wasmImports = {
   /** @export */ _emval_invoke: __emval_invoke,
   /** @export */ _emval_new_cstring: __emval_new_cstring,
   /** @export */ _emval_run_destructors: __emval_run_destructors,
-  /** @export */ _emval_typeof: __emval_typeof,
   /** @export */ _tzset_js: __tzset_js,
   /** @export */ alignfault,
   /** @export */ emscripten_asm_const_int: _emscripten_asm_const_int,

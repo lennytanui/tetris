@@ -443,8 +443,7 @@ void RenderRectangles(AppState *app_state, TextureManager *textureManager, float
 
     { // TODO: camera movement
 
-    }
-    
+    }    
     glUseProgram(app_state->basic_sp);
 
     glEnable(GL_BLEND);
@@ -548,9 +547,12 @@ void RenderRectangles(AppState *app_state, TextureManager *textureManager, float
     glEnableVertexAttribArray(2);
     glEnableVertexAttribArray(3);
     glEnableVertexAttribArray(4);
-
+    
+    // glScissor(0, 0, 500, 500);
+    // glEnable(GL_SCISSOR_TEST);
     glDrawElements(GL_TRIANGLES, 6 * app_state->render_squares_count, GL_UNSIGNED_INT, 0);
-   
+    // glDisable(GL_SCISSOR_TEST);    
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     glDeleteBuffers(1, &b);
