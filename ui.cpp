@@ -383,6 +383,54 @@ PanelState Panel(void *id, InputManager *im, UIRenderer *renderer, const char *b
     return result;
 }
 
+
+// Scrollable Panel Attributes
+struct ScrollablePanelState{
+    PanelState panelState;
+    
+    HMM_Vec2 pos;
+    HMM_Vec2 size;
+
+    bool scrolling; // true when scrolling
+    float scrollTime;
+    float initialOffset;
+    float offset = 0.0f;
+    float scrollHeight;
+    float initialScrollHeight;
+
+    int start = 0;
+};
+void ScrollablePanel(void *id, InputManager *im, UIRenderer *renderer, const char *background_image, ScrollablePanelState *sps){
+    sps->panelState = Panel(id, im, renderer, background_image, sps->pos, sps->size);
+
+    if(sps->panelState.hot){
+        if(sps->panelState.active){
+            if(sps->scrolling == false){
+                sps->initialOffset = sps->offset;
+                sps->initialScrollHeight = sps->scrollHeight;
+                sps->scrolling = true;
+                sps->scrollTime = 0.0f;
+            }
+
+            sps->scrollTime += im->dt;
+            // printf("Cursor Change %f\n", (im->cursorClickPos.Y - im->cursorPos.Y));
+            // printf("Cursor Click Pos {%f, %f}\n", im->cursorClickPos.X, im->cursorClickPos.Y);
+            
+            sps->scrollHeight = sps->initialScrollHeight + (im->cursorClickPos.Y - im->cursorPos.Y);
+            if(sps->scrollHeight < 0){
+                sps->scrollHeight = 0;
+            }
+            sps->offset = sps->initialOffset + (im->cursorPos.Y - im->cursorClickPos.Y);
+        }
+    }
+
+    if(!sps->panelState.active){
+        if(sps->scrolling){
+            sps->scrolling = false;
+        }
+    }
+}
+
 unsigned int DrawUIText(UIRenderer *renderer, InputManager *im, float scale, std::string label, HMM_Vec2 pos,  HMM_Vec3 color){
     pos += im->parent_pos;
     pos.Y += 48 * scale;

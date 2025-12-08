@@ -1,7 +1,6 @@
 #pragma once
 struct InputManager{
-    // float cursorX;
-    // float cursorY;
+    float dt;
     HMM_Vec2 cursorPos;
     GLFWwindow *window;
 

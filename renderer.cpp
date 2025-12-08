@@ -373,7 +373,9 @@ void ReadFile(char *file_name, char *buffer) {
 }
 
 // position is HMM_Vec4 because of depth on .W
-Render_Square *create_render_square(AppState *app_state, HMM_Vec4 position, HMM_Vec2 dimensions, RGBA color, RGBA border_clr, unsigned texSlot){
+// Renders with default batch index of 0
+Render_Square *create_render_square(AppState *app_state, HMM_Vec4 position, HMM_Vec2 dimensions, 
+    RGBA color, RGBA border_clr, unsigned texSlot){
 
     Render_Square *render_square = (Render_Square *)malloc(sizeof(Render_Square));
     render_square->color = color;
@@ -382,7 +384,25 @@ Render_Square *create_render_square(AppState *app_state, HMM_Vec4 position, HMM_
     render_square->dimensions = dimensions;
     render_square->textureSlot = texSlot;
     
-    app_state->render_squares[app_state->render_squares_count++] = render_square;
+    RenderBatch* batch = &app_state->batches[0];
+    batch->render_squares[batch->count++] = render_square;
+
+    return render_square;
+}
+
+Render_Square *create_render_square(AppState *app_state, HMM_Vec4 position, HMM_Vec2 dimensions, 
+    RGBA color, RGBA border_clr, unsigned texSlot, unsigned int batchIndex){
+
+    Render_Square *render_square = (Render_Square *)malloc(sizeof(Render_Square));
+    render_square->color = color;
+    render_square->border_clr = border_clr;
+    render_square->position = position;
+    render_square->dimensions = dimensions;
+    render_square->textureSlot = texSlot;
+    
+    RenderBatch* batch = &app_state->batches[batchIndex];
+    batch->render_squares[batch->count++] = render_square;
+
 
     return render_square;
 }
@@ -392,7 +412,7 @@ void draw_render_squares(AppState *app_state){
 }
 
 // Renders the rectangles from the "render_squares"
-void RenderRectangles(AppState *app_state, TextureManager *textureManager, float dt) {
+void RenderRectangles(AppState *app_state, TextureManager *textureManager, float dt, int batchIndex) {
     
     HMM_Vec3 cam_pos = {app_state->cam_pos.X, app_state->cam_pos.Y, app_state->cam_pos.Z}; 
 
@@ -465,14 +485,17 @@ void RenderRectangles(AppState *app_state, TextureManager *textureManager, float
     unsigned int view_loc = glGetUniformLocation(app_state->basic_sp, "u_view");
     glUniformMatrix4fv(view_loc, 1, GL_FALSE, &app_state->view[0][0]);
 
+    RenderBatch *batch = &app_state->batches[batchIndex];
+
     const int bufferSize = 60;
-    float *batchedVertices = (float *)malloc(bufferSize * app_state->render_squares_count * sizeof(float));
+    float *batchedVertices = (float *)malloc(bufferSize * batch->count * sizeof(float));
     int batchedIndex = 0;
 
-    unsigned int *batchedIndices = (unsigned int *)malloc(6 * app_state->render_squares_count * sizeof(unsigned int));
+    unsigned int *batchedIndices = (unsigned int *)malloc(6 * batch->count * sizeof(unsigned int));
 
-    for(int i = 0; i < app_state->render_squares_count; i++){
-        Render_Square *render_square = app_state->render_squares[i];
+
+    for(int i = 0; i < batch->count; i++){
+        Render_Square *render_square = batch->render_squares[i];
         HMM_Vec4 pos = render_square->position;
         float texSlot = (float)render_square->textureSlot;
         RGBA clr = render_square->color;
@@ -515,7 +538,7 @@ void RenderRectangles(AppState *app_state, TextureManager *textureManager, float
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 
         app_state->basic_ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * app_state->render_squares_count * sizeof(float), 
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * batch->count * sizeof(float), 
         batchedIndices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -526,7 +549,7 @@ void RenderRectangles(AppState *app_state, TextureManager *textureManager, float
     unsigned int b = 0;
     glGenBuffers(1, &b);
     glBindBuffer(GL_ARRAY_BUFFER, b);
-    glBufferData(GL_ARRAY_BUFFER, bufferSize * app_state->render_squares_count * sizeof(float), 
+    glBufferData(GL_ARRAY_BUFFER, bufferSize * batch->count * sizeof(float), 
         batchedVertices, GL_STATIC_DRAW);        
 
     // describe the data in the buffer
@@ -548,10 +571,7 @@ void RenderRectangles(AppState *app_state, TextureManager *textureManager, float
     glEnableVertexAttribArray(3);
     glEnableVertexAttribArray(4);
     
-    // glScissor(0, 0, 500, 500);
-    // glEnable(GL_SCISSOR_TEST);
-    glDrawElements(GL_TRIANGLES, 6 * app_state->render_squares_count, GL_UNSIGNED_INT, 0);
-    // glDisable(GL_SCISSOR_TEST);    
+    glDrawElements(GL_TRIANGLES, 6 * batch->count, GL_UNSIGNED_INT, 0);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -562,12 +582,12 @@ void RenderRectangles(AppState *app_state, TextureManager *textureManager, float
     glUseProgram(0);
     free(batchedVertices);
 
-    for(int i = 0; i < app_state->render_squares_count; i++){
-        Render_Square *render_square = app_state->render_squares[i];
+    for(int i = 0; i < batch->count; i++){
+        Render_Square *render_square = batch->render_squares[i];
         free(render_square);
         render_square = 0;
     }
-    app_state->render_squares_count = 0;
+    batch->count = 0;
 }
 
 void AppQuit(AppState *app_state){

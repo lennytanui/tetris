@@ -167,6 +167,10 @@ static HMM_Vec2 initialPiecePos = {0}; // for mobile sliding
 static float slideTime = 0.0f;
 static float verticalSlideTime = 0.5f;
 
+
+HMM_Vec2 global_menuPosition = {0};
+HMM_Vec2 global_menuSize = {0};
+
 void SetCursorPosition(float x, float y){
     
     if(global_app_state.initialized){
@@ -535,60 +539,104 @@ extern "C" EMSCRIPTEN_KEEPALIVE void GetLeaderBoard(){
 }
 #endif
 
+ScrollablePanelState global_LeaderboardSPS = {0};
 
-void DrawLeaderBoard(HMM_Vec2 pos, HMM_Vec2 size){
+void DrawLeaderBoard(HMM_Vec2 menuPos, HMM_Vec2 menuSize){
     unsigned whiteTextureSlot = global_textureManager->GetTextureSlot("assets/white_texture.jpg");
-
-    PanelState ps = Panel(&whiteTextureSlot, &im, global_UIRenderer, "assets/white_texture.jpg", pos, size);
     
-    float y_pos = 2.0f;
-    int i = 0;
-    HMM_Vec2 panelPos = pos;
-    HMM_Vec2 panelSize = size;
+    HMM_Vec2 panelPos = {0};
+    HMM_Vec2 panelSize = {0};
     AppState *app_state = &global_app_state;
-
-    global_UIRenderer->DrawText("LEADERBOARD", 0.9f, 
-        {panelPos.X + TILE_SIZE * 1, 
-            panelPos.Y + panelSize.Y}, 
-        {125.0f, 125.0f, 125.0f});
-
     float leader_board_score_height = 48;
 
-    for (auto it = global_FetchedScores.begin(); it != global_FetchedScores.end(); ++it) {
     
+    int scoresToDisplayCount = 7; // acutal value is this number minus 1 for scrolling allusion
+    panelPos = global_LeaderboardSPS.pos;
+    panelSize = {global_LeaderboardSPS.size.X, scoresToDisplayCount * leader_board_score_height};
+    ScrollablePanel((void *)DrawLeaderBoard, &im, global_UIRenderer, "assets/white_texture.jpg", &global_LeaderboardSPS);
+
+    HMM_Vec2 leaderBoardTopLeft = panelPos;
+    leaderBoardTopLeft.Y += leader_board_score_height * 6;
+
+    global_UIRenderer->DrawText("LEADERBOARD", 0.9f, 
+        {panelPos.X, panelPos.Y + panelSize.Y}, 
+        {125.0f, 125.0f, 125.0f});
+    
+    bool shifting = false;
+    int length = 12;
+    
+    float totalScoresHeight = global_FetchedScores.size() * leader_board_score_height;
+    float viewHeight = (scoresToDisplayCount - 2) * leader_board_score_height;
+    
+    if(global_LeaderboardSPS.scrollHeight > (totalScoresHeight - viewHeight)){
+        global_LeaderboardSPS.scrollHeight = totalScoresHeight - viewHeight;
+    }
+    
+    global_LeaderboardSPS.start = (int)(global_LeaderboardSPS.scrollHeight / (leader_board_score_height * 2)) * 2;
+
+    if(global_LeaderboardSPS.start < 0){
+        global_LeaderboardSPS.start = 0;
+    }
+
+    float scrollOffset = fmod(global_LeaderboardSPS.scrollHeight, (leader_board_score_height * 2));
+    
+    global_UIRenderer->DrawText(std::to_string(global_LeaderboardSPS.scrollHeight).c_str(), 0.5f, 
+            {panelPos.X + panelSize.X + 50, 
+                leaderBoardTopLeft.Y - 300}, 
+            {125.0f, 125.0f, 125.0f});
+
+    global_UIRenderer->DrawText(std::to_string(global_LeaderboardSPS.start).c_str(), 0.5f, 
+            {panelPos.X + panelSize.X + 50, 
+                leaderBoardTopLeft.Y - 350}, 
+            {125.0f, 125.0f, 125.0f});
+
+    
+    float yIndex = 1.0f;
+    
+    for(int i = 0; i < scoresToDisplayCount; i++){
+
+        if(global_LeaderboardSPS.start + i >= global_FetchedScores.size()) break;
+
         RGBA colorOne = {96.0f, 95.0f, 94.0f, 255.0f};
         RGBA colorTwo = {188.0f, 172.0f, 155.0f, 255.0f};
         if(i % 2 == 0){
             create_render_square(app_state, {panelPos.X,
-                panelPos.Y + panelSize.Y - leader_board_score_height * y_pos, 0.0f, 1.0f}, 
-                {panelSize.X, leader_board_score_height }, 
-            colorOne, colorOne, whiteTextureSlot);
+                leaderBoardTopLeft.Y + scrollOffset - leader_board_score_height * i, 0.0f, 1.0f}, 
+                {panelSize.X, leader_board_score_height}, 
+            colorOne, colorOne, whiteTextureSlot, 1);
         } else {
             create_render_square(app_state, {panelPos.X,
-                panelPos.Y + panelSize.Y - leader_board_score_height * y_pos, 0.0f, 1.0f}, 
-                {panelSize.X, leader_board_score_height }, 
-            colorTwo, colorTwo, whiteTextureSlot);
+                leaderBoardTopLeft.Y + scrollOffset - leader_board_score_height * i, 0.0f, 1.0f}, 
+                {panelSize.X, leader_board_score_height}, 
+            colorTwo, colorTwo, whiteTextureSlot, 1);
         }
 
-        global_UIRenderer->DrawText(std::to_string(it->score).c_str(), 0.5f, 
-        {panelPos.X + TILE_SIZE * 1, 
-            panelPos.Y + panelSize.Y - leader_board_score_height * y_pos + 48 * 0.4f}, 
-        {125.0f, 125.0f, 125.0f});
+        glScissor(320, 350, 360, 220);
+        glEnable(GL_SCISSOR_TEST);
 
-        y_pos += 1;
-        i++;
+        if(!shifting){
+            global_UIRenderer->DrawText(std::to_string(global_FetchedScores.at(global_LeaderboardSPS.start + i).score).c_str(), 0.5f, 
+            {panelPos.X + TILE_SIZE * 1, 
+                leaderBoardTopLeft.Y + scrollOffset - leader_board_score_height * (i + 0) + 48 * 0.4f}, 
+            {125.0f, 125.0f, 125.0f});
+            glDisable(GL_SCISSOR_TEST);
+        }
+
+        yIndex++;
     }
 
     RGBA sliderColor = {200.0f, 200.0f, 200.0f, 255.0f};
-    HMM_Vec2 sliderSize = {20.0f, 100.0f};
-    HMM_Vec2 sliderPos = {panelPos.X + panelSize.X, panelPos.Y};
-    sliderPos.X -= sliderSize.X;
+    HMM_Vec2 sliderSize = {20.0f, (leader_board_score_height * 5) / global_FetchedScores.size()};
+
+    HMM_Vec2 sliderPos = {panelPos.X + panelSize.X, leaderBoardTopLeft.Y - sliderSize.Y - leader_board_score_height * 2};
+    sliderPos.Y -= global_LeaderboardSPS.start * (leader_board_score_height / 2.0f) - global_LeaderboardSPS.offset;
+    // sliderPos.X -= sliderSize.X;
     
     global_UIRenderer->DrawRect(sliderPos, sliderSize.X, sliderSize.Y, sliderColor, "assets/white_texture.jpg");
 
     if(Button(&global_show_leaderboard, &im, global_UIRenderer,  "Back", 
         HMM_Vec2{panelPos.X + TILE_SIZE * 1, 
-        panelPos.Y + panelSize.Y - leader_board_score_height * y_pos}, 
+        panelPos.Y + panelSize.Y - leader_board_score_height * yIndex}, 
             {0.3f, 0.3f, 0.3f, 1.0f})){
         
         global_show_leaderboard = false;
@@ -755,39 +803,36 @@ void draw(AppState *app_state, float dt){
         {TILE_SIZE, TILE_SIZE},RGBA{255.0f, 0.0f, 0.0f, 50.0f}, BORDER_CLR, whiteTextureSlot);
 
 
-    HMM_Vec2 menu_position = {start_pos.X, start_pos.Y + (TILE_SIZE * 2)};
-    HMM_Vec2 menu_size = {TILE_SIZE * TILE_COUNT_X, TILE_SIZE * 0.75f * TILE_COUNT_Y};
-
     // draw pause menu
     if(global_pause){
         // draw menu background
-        create_render_square(app_state, HMM_Vec4{menu_position.X, menu_position.Y, 0.0f, 1.0f}, 
-            menu_size, {60.0f, 60.0f, 60.0f, 255.0f}, 
+        create_render_square(app_state, HMM_Vec4{global_menuPosition.X, global_menuPosition.Y, 0.0f, 1.0f}, 
+            global_menuSize, {60.0f, 60.0f, 60.0f, 255.0f}, 
             {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
 
         global_UIRenderer->DrawText("PAUSE", 1.2f, 
-        {menu_position.X + TILE_SIZE * 3, 
-            menu_position.Y + menu_size.Y - TILE_SIZE * 3.0f}, 
+        {global_menuPosition.X + TILE_SIZE * 3, 
+            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 3.0f}, 
         {125.0f, 125.0f, 125.0f});
         
         if(Button((void *)AppQuit, &im, global_UIRenderer,  "Quit", 
-            HMM_Vec2{menu_position.X + TILE_SIZE * 3, 
-            menu_position.Y + menu_size.Y - TILE_SIZE * 7.0f}, 
+            HMM_Vec2{global_menuPosition.X + TILE_SIZE * 3, 
+            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 7.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             // quit
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
 
         if(Button((void *)draw, &im, global_UIRenderer,  "Continue", 
-            HMM_Vec2{menu_position.X + TILE_SIZE * 3, 
-            menu_position.Y + menu_size.Y - TILE_SIZE * 9.0f}, 
+            HMM_Vec2{global_menuPosition.X + TILE_SIZE * 3, 
+            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 9.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             global_pause = false;
         }
         
         if(Button((void *)draw, &im, global_UIRenderer,  "Settings", 
-            HMM_Vec2{menu_position.X + TILE_SIZE * 3, 
-            menu_position.Y + menu_size.Y - TILE_SIZE * 11.0f}, 
+            HMM_Vec2{global_menuPosition.X + TILE_SIZE * 3, 
+            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 11.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             global_pause = false;
         }
@@ -795,41 +840,41 @@ void draw(AppState *app_state, float dt){
 
     // draw game over
     if(global_game_over && !global_show_menuboard && !global_show_leaderboard){
-        create_render_square(app_state, HMM_Vec4{menu_position.X, menu_position.Y, 0.0f, 1.0f}, 
-            menu_size, {60.0f, 60.0f, 60.0f, 255.0f}, 
+        create_render_square(app_state, HMM_Vec4{global_menuPosition.X, global_menuPosition.Y, 0.0f, 1.0f}, 
+            global_menuSize, {60.0f, 60.0f, 60.0f, 255.0f}, 
             {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
 
         global_UIRenderer->DrawText("GAME OVER!", 0.9f, 
-        {menu_position.X + TILE_SIZE * 1, 
-            menu_position.Y + menu_size.Y - TILE_SIZE * 3.0f}, 
+        {global_menuPosition.X + TILE_SIZE * 1, 
+            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 3.0f}, 
         {125.0f, 125.0f, 125.0f});
         
         
         std::string high_score_str = "High Score : ";
         high_score_str += NumToString(555);
         global_UIRenderer->DrawText(high_score_str, 0.8f, 
-        {menu_position.X + TILE_SIZE * 1, 
-            menu_position.Y + menu_size.Y - TILE_SIZE * 5.0f},
+        {global_menuPosition.X + TILE_SIZE * 1, 
+            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 5.0f},
             {200.0f, 200.0f, 200.0f});
 
         std::string score_string = "SCORE - ";
         score_string += NumToString(global_last_game_score);
         global_UIRenderer->DrawText(score_string, 0.8f, 
-        {menu_position.X + TILE_SIZE * 1, 
-            menu_position.Y + menu_size.Y - TILE_SIZE * 7.0f}, 
+        {global_menuPosition.X + TILE_SIZE * 1, 
+            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 7.0f}, 
         {125.0f, 125.0f, 125.0f});
 
         if(Button((void *)AppQuit, &im, global_UIRenderer, "Menu", 
-            HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
-            menu_position.Y + menu_size.Y - TILE_SIZE * 9.0f}, 
+            HMM_Vec2{global_menuPosition.X + TILE_SIZE * 1, 
+            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 9.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             global_show_menuboard = true;
         }
 
 
         if(Button((void *)draw, &im, global_UIRenderer,  "Restart", 
-            HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
-            menu_position.Y + menu_size.Y - TILE_SIZE * 9.0f}, 
+            HMM_Vec2{global_menuPosition.X + TILE_SIZE * 1, 
+            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 9.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             global_pause = false;
 
@@ -850,40 +895,24 @@ void draw(AppState *app_state, float dt){
     // show leader board  
     global_show_leaderboard = true;  
     if(global_show_leaderboard){
-        // create_render_square(app_state, HMM_Vec4{menu_position.X, menu_position.Y, 0.0f, 1.0f}, 
-        //     menu_size, {60.0f, 60.0f, 60.0f, 255.0f}, 
-        //     {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
-
-        
-
-        
-        // ReadDataResult rdr = ReadDataFile("data.dat");
-        
-        // for(int i = 0; i < 1; i++){
-        //     printf("Scoreglobal_FetchedScores[i];
-        // }
-        
-        DrawLeaderBoard(HMM_Vec2{menu_position.X, menu_position.Y}, HMM_Vec2{menu_size.X, menu_size.Y});
-        
-        
+        DrawLeaderBoard(HMM_Vec2{global_menuPosition.X, global_menuPosition.Y}, HMM_Vec2{global_menuSize.X, global_menuSize.Y});        
     }
 
     // show menu board
-    
     if(global_show_menuboard && false){
-        create_render_square(app_state, HMM_Vec4{menu_position.X, menu_position.Y, 0.0f, 1.0f}, 
-            menu_size, 
+        create_render_square(app_state, HMM_Vec4{global_menuPosition.X, global_menuPosition.Y, 0.0f, 1.0f}, 
+            global_menuSize, 
         {60.0f, 60.0f, 60.0f, 255.0f}, {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
 
         global_UIRenderer->DrawText("MENU", 0.9f, 
-        {menu_position.X + TILE_SIZE * 1, 
-            menu_position.Y + menu_size.Y - TILE_SIZE * 3.0f}, 
+        {global_menuPosition.X + TILE_SIZE * 1, 
+            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 3.0f}, 
         {125.0f, 125.0f, 125.0f});
         
         float y_pos = 5.0f;
         if(Button(&global_pause, &im, global_UIRenderer,  "Play", 
-            HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
-            menu_position.Y + menu_size.Y - TILE_SIZE * y_pos}, 
+            HMM_Vec2{global_menuPosition.X + TILE_SIZE * 1, 
+            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * y_pos}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             
             global_pause = false;
@@ -904,8 +933,8 @@ void draw(AppState *app_state, float dt){
         }
 
         if(Button(&global_show_leaderboard, &im, global_UIRenderer,  "Leaderboard", 
-            HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
-            menu_position.Y + menu_size.Y - TILE_SIZE * (y_pos + 2)}, 
+            HMM_Vec2{global_menuPosition.X + TILE_SIZE * 1, 
+            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * (y_pos + 2)}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
                 global_show_leaderboard = true;
                 global_show_menuboard = false;
@@ -916,8 +945,8 @@ void draw(AppState *app_state, float dt){
         }
         
         if(Button((void *)&AppQuit, &im, global_UIRenderer,  "Quit", 
-            HMM_Vec2{menu_position.X + TILE_SIZE * 1, 
-            menu_position.Y + menu_size.Y - TILE_SIZE * (y_pos + 4)}, 
+            HMM_Vec2{global_menuPosition.X + TILE_SIZE * 1, 
+            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * (y_pos + 4)}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
 
             // quit
@@ -932,7 +961,13 @@ void start(AppState *app_state){
     GetLeaderBoard();
     Resize_UpdatePositions();
     curr_pos = {start_pos.X + TILE_SIZE * 3, start_pos.Y + TILE_SIZE * (TILE_COUNT_Y - 2)};
+    
+    global_menuPosition = {start_pos.X, start_pos.Y + (TILE_SIZE * 2)};
+    global_menuSize = {TILE_SIZE * TILE_COUNT_X, TILE_SIZE * 0.75f * TILE_COUNT_Y};
+
     global_show_menuboard = true;
+    global_LeaderboardSPS.size = global_menuSize;
+    global_LeaderboardSPS.pos = global_menuPosition;
     
     for(int x = 0; x < TILE_COUNT_X; x++){
         for(int y = 0; y < TILE_COUNT_Y; y++){
@@ -957,7 +992,7 @@ void start(AppState *app_state){
 }
 
 void update(AppState *app_state, float dt){
-
+    im.dt = dt;
 #if 1 // Tetris Updates
 
     // Slide Timing

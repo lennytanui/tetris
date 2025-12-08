@@ -22,6 +22,11 @@ GLFWwindow *window = 0; // this is bad?
 
 void move_tetromino(int key);
 
+struct RenderBatch{
+    unsigned int count;
+    Render_Square *render_squares[10000];
+};
+
 struct AppState{
     bool initialized;
     int basic_sp;
@@ -38,7 +43,13 @@ struct AppState{
     int window_width;
     int window_height;
 
-    Render_Square* render_squares[10000];
+    // Render_Square* render_squares[10000];
+    // Render_Square* batch_2[10000];
+    // Render_Square* batch_3[10000];
+    // Render_Square* batch_4[10000];
+    // Render_Square* batches[4];
+    RenderBatch batches[5];
+
     unsigned int render_squares_count;
 };
 

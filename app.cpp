@@ -43,8 +43,13 @@ void app_update(AppState *app_state, float dt){
     app_state->window_width = global_window_width;
     app_state->window_height = global_window_height;
     
-    RenderRectangles(app_state, global_textureManager, dt);
-
+    RenderRectangles(app_state, global_textureManager, dt, 0);
+    
+    glScissor(320, 350, 360, 220);
+    glEnable(GL_SCISSOR_TEST);
+    RenderRectangles(app_state, global_textureManager, dt, 1);
+    glDisable(GL_SCISSOR_TEST);    
+    
     unsigned int whiteTextureSlot = global_textureManager->GetTextureSlot("assets/white_texture.jpg");
     if(currentApp == TETRIS){
         Tetris::update(app_state, dt);
