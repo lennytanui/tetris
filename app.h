@@ -2,7 +2,8 @@
 #include "HandmadeMath.h"
 #include "math.h"
 #include "renderer.h"
-
+#include <cstdlib>
+#include <ctime>
 static int global_window_width = 800;
 static int global_window_height = 800;
 
@@ -43,12 +44,11 @@ struct AppState{
     int window_width;
     int window_height;
 
-    // Render_Square* render_squares[10000];
-    // Render_Square* batch_2[10000];
-    // Render_Square* batch_3[10000];
-    // Render_Square* batch_4[10000];
-    // Render_Square* batches[4];
     RenderBatch batches[5];
+
+    HMM_Vec2 leaderBoardScreenPos_BottomLeft;
+    HMM_Vec2 leaderBoardScreenPos_TopRight;
+    std::string playerName;
 
     unsigned int render_squares_count;
 };

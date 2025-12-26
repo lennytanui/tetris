@@ -159,8 +159,8 @@ void UIRenderer::UpdateTextRendererDimensions(int window_width, int window_heigh
     m_window_height = window_height;
 
     // update projection matrix uniform
-    glUseProgram(m_shader.program);
-    m_u_projection_matrix = GetUniformLocation(&m_shader, "projection_matrix");
+    glUseProgram(m_textShader.program);
+    m_u_projection_matrix = GetUniformLocation(&m_textShader, "projection_matrix");
 
     SetUniformValue(m_u_projection_matrix, m_projection_ortho);
     
@@ -247,21 +247,21 @@ void UIRenderer::SetupTextRenderer(int window_width, int window_height){
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // load text shader
-    m_shader.program = LoadShaders("assets/text_basic_vs_web.glsl", "assets/text_basic_fs_web.glsl");
+    m_textShader.program = LoadShaders("assets/text_basic_vs_web.glsl", "assets/text_basic_fs_web.glsl");
     
     UpdateTextRendererDimensions(window_width, window_height);
 
-    glUseProgram(m_shader.program);
+    glUseProgram(m_textShader.program);
 
-    BindLocation(&m_shader, 0, "position");
-    m_u_text_color = GetUniformLocation(&m_shader, "text_color");
+    BindLocation(&m_textShader, 0, "position");
+    m_u_text_color = GetUniformLocation(&m_textShader, "text_color");
 
     SetUniformValue(m_u_text_color, HMM_Vec3{255.0f, 0.0f, 0.0f});
     
-    glGenVertexArrays(1, &m_vao);
-    glGenBuffers(1, &m_vbo);
-    glBindVertexArray(m_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    glGenVertexArrays(1, &m_textVao);
+    glGenBuffers(1, &m_textVbo);
+    glBindVertexArray(m_textVao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_textVbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
@@ -279,7 +279,7 @@ void UIRenderer::RenderText(Text text, float scale, HMM_Vec3 color, HMM_Vec2 pos
     
     HMM_Vec2 originalPosition = position;
     
-    glUseProgram(m_shader.program);
+    glUseProgram(m_textShader.program);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -288,7 +288,7 @@ void UIRenderer::RenderText(Text text, float scale, HMM_Vec3 color, HMM_Vec2 pos
 
     SetUniformValue(m_u_text_color, color);
 
-    glBindVertexArray(m_vao);
+    glBindVertexArray(m_textVao);
     glActiveTexture(GL_TEXTURE0);
 
     // iterate through all characters
@@ -319,7 +319,7 @@ void UIRenderer::RenderText(Text text, float scale, HMM_Vec3 color, HMM_Vec2 pos
         // render glyph texture over quad
         glBindTexture(GL_TEXTURE_2D, ch.textureID);
         // update content of VBO memory
-        glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, m_textVbo);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         // render quad
@@ -370,6 +370,28 @@ void ReadFile(char *file_name, char *buffer) {
     char *result = 0;
 
     buffer = result;
+}
+
+
+HMM_Vec2 WorldToScreen2D(HMM_Vec2 worldPos, HMM_Mat4 viewMat, HMM_Mat4 projMat, HMM_Vec2 screenDim){
+    HMM_Vec2 result = {0};
+    HMM_Vec4 pos = HMM_Vec4{worldPos.X, worldPos.Y, 0.0f, 1.0f};
+    
+    HMM_Vec4 clipSpace = projMat * viewMat * pos;
+
+    HMM_Vec2 ndc = {0};
+    if(clipSpace.W != 0){
+        ndc.X = clipSpace.X / clipSpace.W;
+        ndc.Y = clipSpace.Y / clipSpace.W;
+    }else{
+        return HMM_Vec2{0,0};
+    }
+
+    // Screen Position
+    result.X = (ndc.X + 1.0f) * 0.5f * screenDim.X;
+    result.Y = (ndc.Y + 1.0f) * 0.5f * screenDim.Y;
+
+    return result;
 }
 
 // position is HMM_Vec4 because of depth on .W

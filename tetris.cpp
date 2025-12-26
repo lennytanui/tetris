@@ -44,6 +44,7 @@
 #define TILE_COUNT_Y 18
 
 #define TILE_SIZE 37.0f
+#define BORDER_HALF_WIDTH 2.5f
 #define BORDER_CLR {72.0f, 79.0f, 72.0f, 0.0f}
 #define TILE_CLR {16.0f, 31.0f, 17.0f, 255.0f}
 #define BACKGROUND_COLOR {50.0f, 50.0f, 50.0f, 255.0f}
@@ -66,29 +67,6 @@ static const Block_Info blocks_table[SHAPES_COUNT] = {
     SHAPE_straight, SHAPE_l1, SHAPE_l2, SHAPE_square, 
     SHAPE_zigzag1, SHAPE_zigzag2, SHAPE_t
 };
-
-#pragma pack(push, 1)
-struct Score{
-    int id;
-    float score;
-    float time;
-    uint8_t age;
-};
-
-#pragma pack(pop)
-
-struct Score_1{
-    int id;
-    float score;
-    float time;
-    uint8_t age;
-};
-
-struct ScoreDataManager{
-    int scores_count;
-    Score *scores;
-};
-
 
 struct PlayerScore{
     int id;
@@ -121,8 +99,7 @@ HMM_Vec2 curr_pos = {0};
 bool global_pause = false;
 bool global_game_over = false;
 bool global_show_leaderboard = false;
-bool global_show_menuboard = false;
-ScoreDataManager global_sdm = {};
+bool global_show_menuboard = true;
 int global_reached_down = 0;
 int global_score = 0;
 int global_last_game_score = 0;
@@ -169,7 +146,7 @@ static float verticalSlideTime = 0.5f;
 
 
 HMM_Vec2 global_menuPosition = {0};
-HMM_Vec2 global_menuSize = {0};
+#define MENU_SIZE HMM_Vec2{TILE_SIZE * TILE_COUNT_X, TILE_SIZE * 0.75f * TILE_COUNT_Y}
 
 void SetCursorPosition(float x, float y){
     
@@ -250,8 +227,6 @@ void FindFullLines(){
         }
 
     }
-
-    // global_time_btw_moves -= 0.005f * cleared_lines;
 }
 
 HMM_Vec2 GetBoardCoord(HMM_Vec2 position){
@@ -480,9 +455,9 @@ void move_tetromino(int key){
 }
 
 // could use a c++ data structure
-void SaveScore(int score){
+void SaveScore(int score, std::string playerName){
     DataElement de = {};
-    de.username = "bob";
+    de.username = playerName.c_str();
     de.score = score;
     de.time = "time";
     de.date = "date";
@@ -513,7 +488,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE void GetLeaderBoard(){
     int length = obj["length"].as<int>();
     for(int i = 0; i < length; i++){
         int id = obj[i]["id"].as<int>();
-        std::string username = obj[0]["username"].as<std::string>();
+        std::string username = obj[i]["username"].as<std::string>();
         int score = obj[i]["score"].as<int>();
         std::string date = obj[i]["date"].as<std::string>();
         std::string time = obj[i]["time"].as<std::string>();
@@ -526,6 +501,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE void GetLeaderBoard(){
 
         global_FetchedScores.push_back(playerScore);
 
+        #if 0
         printf("--- FETCHED VALUES [%i] ---\n", i);
 
         printf("    ID : %i\n", id);
@@ -535,6 +511,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE void GetLeaderBoard(){
         printf("    TIME : %s\n", time.c_str());
         
         printf("--- END ---\n");
+        #endif
     }
 }
 #endif
@@ -543,23 +520,64 @@ ScrollablePanelState global_LeaderboardSPS = {0};
 
 void DrawLeaderBoard(HMM_Vec2 menuPos, HMM_Vec2 menuSize){
     unsigned whiteTextureSlot = global_textureManager->GetTextureSlot("assets/white_texture.jpg");
+
+    AppState *app_state = &global_app_state;
     
+    create_render_square(app_state, {global_menuPosition.X, global_menuPosition.Y, 3.0f, 1.0f}, 
+        MENU_SIZE, RGBA{60.0f, 60.0f, 60.0f, 255.0f}, RGBA{60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
+
+    float leader_board_score_height = 48;
     HMM_Vec2 panelPos = {0};
     HMM_Vec2 panelSize = {0};
-    AppState *app_state = &global_app_state;
-    float leader_board_score_height = 48;
+    HMM_Vec2 sliderSize = {20.0f, (leader_board_score_height * 5) / global_FetchedScores.size()};
 
+    const int scoresToDisplayCount = 7;
+
+    global_LeaderboardSPS.size = MENU_SIZE;
+    global_LeaderboardSPS.size.Y = (scoresToDisplayCount - 2) * leader_board_score_height;
+
+    global_LeaderboardSPS.pos = global_menuPosition + HMM_Vec2{0, 100.0f};
+
+    float ortho_width = 1000.0f;
+    float ortho_height = ortho_width;
+    ortho_height *= ((float)global_frame_buffer_height / (float)global_frame_buffer_width);
+
+    // convert leaderboard position to screen coordinates
+    HMM_Vec2 leaderBoardScreenPos_BottomLeft = WorldToScreen2D(global_LeaderboardSPS.pos, 
+        global_app_state.view, 
+        global_app_state.proj, 
+        HMM_Vec2{(float)ortho_width, (float)ortho_height});
     
-    int scoresToDisplayCount = 7; // acutal value is this number minus 1 for scrolling allusion
+    HMM_Vec2 leaderBoardScreenPos_TopRight = WorldToScreen2D(global_LeaderboardSPS.pos + global_LeaderboardSPS.size, global_app_state.view, 
+        global_app_state.proj, 
+        HMM_Vec2{(float)ortho_width, (float)ortho_height});
+    
+    global_app_state.leaderBoardScreenPos_BottomLeft = leaderBoardScreenPos_BottomLeft;
+    global_app_state.leaderBoardScreenPos_TopRight = leaderBoardScreenPos_TopRight;
+
     panelPos = global_LeaderboardSPS.pos;
-    panelSize = {global_LeaderboardSPS.size.X, scoresToDisplayCount * leader_board_score_height};
+    panelSize = {global_LeaderboardSPS.size.X - sliderSize.X, scoresToDisplayCount * leader_board_score_height};
     ScrollablePanel((void *)DrawLeaderBoard, &im, global_UIRenderer, "assets/white_texture.jpg", &global_LeaderboardSPS);
 
-    HMM_Vec2 leaderBoardTopLeft = panelPos;
-    leaderBoardTopLeft.Y += leader_board_score_height * 6;
+    HMM_Vec2 leaderBoardTopLeft = {panelPos.X, panelPos.Y + leader_board_score_height * (scoresToDisplayCount - 3)};
 
     global_UIRenderer->DrawText("LEADERBOARD", 0.9f, 
-        {panelPos.X, panelPos.Y + panelSize.Y}, 
+        {panelPos.X, leaderBoardTopLeft.Y + leader_board_score_height * 2}, 
+        {125.0f, 125.0f, 125.0f});
+
+    global_UIRenderer->DrawText("RANK", 0.6f, 
+        {panelPos.X, leaderBoardTopLeft.Y + leader_board_score_height}, 
+        {125.0f, 125.0f, 125.0f});
+
+    float nameTitleWidth = GetTextWidth(global_UIRenderer, "NAME", 0.6f);
+    global_UIRenderer->DrawText("NAME", 0.6f, 
+        {panelPos.X + panelSize.X / 2 - nameTitleWidth / 2, leaderBoardTopLeft.Y + leader_board_score_height}, 
+        {125.0f, 125.0f, 125.0f});
+
+    
+    float scoreTitleWidth = GetTextWidth(global_UIRenderer, "SCORE", 0.6f);
+    global_UIRenderer->DrawText("SCORE", 0.6f, 
+        {panelPos.X  + panelSize.X - scoreTitleWidth, leaderBoardTopLeft.Y + leader_board_score_height}, 
         {125.0f, 125.0f, 125.0f});
     
     bool shifting = false;
@@ -580,65 +598,71 @@ void DrawLeaderBoard(HMM_Vec2 menuPos, HMM_Vec2 menuSize){
 
     float scrollOffset = fmod(global_LeaderboardSPS.scrollHeight, (leader_board_score_height * 2));
     
-    global_UIRenderer->DrawText(std::to_string(global_LeaderboardSPS.scrollHeight).c_str(), 0.5f, 
-            {panelPos.X + panelSize.X + 50, 
-                leaderBoardTopLeft.Y - 300}, 
-            {125.0f, 125.0f, 125.0f});
-
-    global_UIRenderer->DrawText(std::to_string(global_LeaderboardSPS.start).c_str(), 0.5f, 
-            {panelPos.X + panelSize.X + 50, 
-                leaderBoardTopLeft.Y - 350}, 
-            {125.0f, 125.0f, 125.0f});
-
-    
-    float yIndex = 1.0f;
-    
     for(int i = 0; i < scoresToDisplayCount; i++){
 
         if(global_LeaderboardSPS.start + i >= global_FetchedScores.size()) break;
 
-        RGBA colorOne = {96.0f, 95.0f, 94.0f, 255.0f};
-        RGBA colorTwo = {188.0f, 172.0f, 155.0f, 255.0f};
-        if(i % 2 == 0){
-            create_render_square(app_state, {panelPos.X,
-                leaderBoardTopLeft.Y + scrollOffset - leader_board_score_height * i, 0.0f, 1.0f}, 
-                {panelSize.X, leader_board_score_height}, 
-            colorOne, colorOne, whiteTextureSlot, 1);
-        } else {
-            create_render_square(app_state, {panelPos.X,
-                leaderBoardTopLeft.Y + scrollOffset - leader_board_score_height * i, 0.0f, 1.0f}, 
-                {panelSize.X, leader_board_score_height}, 
-            colorTwo, colorTwo, whiteTextureSlot, 1);
-        }
+        RGBA color = (i % 2 == 0) ? RGBA{96.0f, 95.0f, 94.0f, 255.0f} : RGBA{188.0f, 172.0f, 155.0f, 255.0f};
+       
+        create_render_square(app_state, {panelPos.X,
+            leaderBoardTopLeft.Y + scrollOffset - leader_board_score_height * i, 0.0f, 1.0f}, 
+            {panelSize.X, leader_board_score_height}, 
+        color, color, whiteTextureSlot, 1);
 
-        glScissor(320, 350, 360, 220);
+        glScissor(leaderBoardScreenPos_BottomLeft.X, leaderBoardScreenPos_BottomLeft.Y, 
+            leaderBoardScreenPos_TopRight.X - leaderBoardScreenPos_BottomLeft.X, 
+            leaderBoardScreenPos_TopRight.Y - leaderBoardScreenPos_BottomLeft.Y);
         glEnable(GL_SCISSOR_TEST);
 
         if(!shifting){
-            global_UIRenderer->DrawText(std::to_string(global_FetchedScores.at(global_LeaderboardSPS.start + i).score).c_str(), 0.5f, 
+            // Draw Ranking
+            std::string rank = std::to_string(global_LeaderboardSPS.start + i + 1);
+
+            global_UIRenderer->DrawText(rank.c_str(), 0.4f, 
             {panelPos.X + TILE_SIZE * 1, 
                 leaderBoardTopLeft.Y + scrollOffset - leader_board_score_height * (i + 0) + 48 * 0.4f}, 
             {125.0f, 125.0f, 125.0f});
+            
+            // Draw Username
+            std::string username = global_FetchedScores.at(global_LeaderboardSPS.start + i).username;
+            global_UIRenderer->DrawText(username.c_str(), 
+            0.4f, {panelPos.X + panelSize.X / 2 - GetTextWidth(global_UIRenderer, username.c_str(), 0.4f) / 2, 
+                leaderBoardTopLeft.Y + scrollOffset - leader_board_score_height * (i + 0) + 48 * 0.4f}, 
+            {125.0f, 125.0f, 125.0f});
+
+            // Draw Score
+            std::string score = std::to_string(global_FetchedScores.at(global_LeaderboardSPS.start + i).score);
+
+            global_UIRenderer->DrawText(score.c_str(), 0.4f, 
+            {panelPos.X + panelSize.X - scoreTitleWidth / 2.0f - 
+                GetTextWidth(global_UIRenderer, score.c_str(), 0.4f) / 2.0f, 
+                leaderBoardTopLeft.Y + scrollOffset - leader_board_score_height * (i + 0) + 48 * 0.4f}, 
+            {125.0f, 125.0f, 125.0f});
+
             glDisable(GL_SCISSOR_TEST);
         }
-
-        yIndex++;
     }
 
     RGBA sliderColor = {200.0f, 200.0f, 200.0f, 255.0f};
-    HMM_Vec2 sliderSize = {20.0f, (leader_board_score_height * 5) / global_FetchedScores.size()};
-
-    HMM_Vec2 sliderPos = {panelPos.X + panelSize.X, leaderBoardTopLeft.Y - sliderSize.Y - leader_board_score_height * 2};
-    sliderPos.Y -= global_LeaderboardSPS.start * (leader_board_score_height / 2.0f) - global_LeaderboardSPS.offset;
-    // sliderPos.X -= sliderSize.X;
+    RGBA sliderBackgroundColor = {150.0f, 150.0f, 150.0f, 255.0f};
     
-    global_UIRenderer->DrawRect(sliderPos, sliderSize.X, sliderSize.Y, sliderColor, "assets/white_texture.jpg");
+    HMM_Vec2 sliderPos = {panelPos.X + panelSize.X, leaderBoardTopLeft.Y + leader_board_score_height - sliderSize.Y};
+    // slider background
+    create_render_square(app_state, {sliderPos.X, sliderPos.Y - 5 *leader_board_score_height + sliderSize.Y, 1.0f, 1.0f}, 
+            {sliderSize.X, 5 * leader_board_score_height}, 
+            sliderBackgroundColor, sliderBackgroundColor, whiteTextureSlot, 1);
+    
+    float ratio = global_LeaderboardSPS.scrollHeight / (global_FetchedScores.size() 
+        * leader_board_score_height - 5 * leader_board_score_height);
+    sliderPos.Y -= ratio * (leader_board_score_height * 5 - sliderSize.Y);
+    
+    // sliding piece
+    create_render_square(app_state, {sliderPos.X, sliderPos.Y, 0.0f, 1.0f}, sliderSize, 
+            sliderColor, sliderColor, whiteTextureSlot, 1);
 
-    if(Button(&global_show_leaderboard, &im, global_UIRenderer,  "Back", 
-        HMM_Vec2{panelPos.X + TILE_SIZE * 1, 
-        panelPos.Y + panelSize.Y - leader_board_score_height * yIndex}, 
+    if(Button(&global_show_leaderboard, &im, global_UIRenderer,  "BACK", 
+        HMM_Vec2{panelPos.X + BUTTON_PADDING, global_LeaderboardSPS.pos.Y - 48 - BUTTON_PADDING }, 
             {0.3f, 0.3f, 0.3f, 1.0f})){
-        
         global_show_leaderboard = false;
         global_show_menuboard = true;
     }
@@ -674,10 +698,9 @@ void draw(AppState *app_state, float dt){
     create_render_square(app_state,
         HMM_Vec4{0.0f, 0.0f, 6.0f, 1.0f}, {(float)global_ortho_width * 1.5f, (float)global_ortho_height * 1.5f}, 
         BACKGROUND_COLOR, BACKGROUND_COLOR, whiteTextureSlot);
-#if 1
+
     // draw the tiles
     HMM_Vec2 tile_pos = start_pos;
-
     for(int x = 0; x < TILE_COUNT_X; x++){
         for(int y = 0; y < TILE_COUNT_Y; y++){
             Tile *tile = &global_tetris_board.tiles[x][y];   
@@ -712,9 +735,17 @@ void draw(AppState *app_state, float dt){
             if(tile->age < t & tile->age > 0){
                 z_index = 5.5f;
             }
-            Render_Square *render_square = create_render_square(app_state,
+            // Background Tile
+            Render_Square *tile_bg_render_square = create_render_square(app_state,
                 HMM_Vec4{tile_pos.X + tile_pos_offset.X, tile_pos.Y + tile_pos_offset.Y, z_index, 1.0f}, {tile->size.X, tile->size.Y}, 
-                    tile->color, tile->border_clr, whiteTextureSlot);
+                    tile->border_clr, tile->border_clr, whiteTextureSlot);
+
+            // Foreground Tile
+            Render_Square *til_fg_render_square = create_render_square(app_state,
+                HMM_Vec4{tile_pos.X + tile_pos_offset.X + BORDER_HALF_WIDTH, tile_pos.Y + 
+                    tile_pos_offset.Y + BORDER_HALF_WIDTH, z_index - 0.5f, 1.0f}, 
+                    {tile->size.X - BORDER_HALF_WIDTH, tile->size.Y - BORDER_HALF_WIDTH}, 
+                    tile->color, tile->color, whiteTextureSlot);
             
             tile_pos.Y += TILE_SIZE;
         }
@@ -769,9 +800,17 @@ void draw(AppState *app_state, float dt){
                 shadow_y + (current_blk->structure[i].Y * TILE_SIZE)
             };
 
-            Render_Square *background = create_render_square(app_state,
-                    {tile_pos.X, tile_pos.Y, 4.0f, 1.0f}, {TILE_SIZE, TILE_SIZE}, 
-                        RGBA{1.0f, 0.0f, 1.0f, 1.0f}, global_parent.color, whiteTextureSlot);
+            float z_index = 3.0f;
+            // Shadow Background
+            Render_Square *shadow_fg = create_render_square(app_state,
+                    {tile_pos.X, tile_pos.Y, z_index, 1.0f}, {TILE_SIZE, TILE_SIZE}, 
+                        global_parent.color, global_parent.color, whiteTextureSlot);
+
+            // Shadow Foreground
+            Render_Square *shadow_bg = create_render_square(app_state,
+                    {tile_pos.X + BORDER_HALF_WIDTH, tile_pos.Y + BORDER_HALF_WIDTH, z_index - 0.5f, 1.0f}, 
+                    {TILE_SIZE - BORDER_HALF_WIDTH * 2, TILE_SIZE - BORDER_HALF_WIDTH * 2}, 
+                    TILE_CLR, TILE_CLR, whiteTextureSlot);
         }
 
     }
@@ -781,7 +820,6 @@ void draw(AppState *app_state, float dt){
         {held_blck_pos.X + TILE_SIZE * 1, held_blck_pos.Y + TILE_SIZE * 5.5f}, 
         {125.0f, 125.0f, 125.0f});
     
-    // printf("Got here? 1 %s\n", text.string.c_str());
     Render_Square *render_square = create_render_square(app_state,
         {held_blck_pos.X, held_blck_pos.Y, 1.0f, 1.0f}, {TILE_SIZE * 4, TILE_SIZE * 4}, 
             {70.0f, 70.0f, 70.0f, 255.0f}, {70.0f, 70.0f, 70.0f, 255.0f}, whiteTextureSlot);
@@ -799,54 +837,53 @@ void draw(AppState *app_state, float dt){
         }
     }
 
-    create_render_square(app_state, {testSquarePos.X, testSquarePos.Y, 0.0f, 1.0f}, 
-        {TILE_SIZE, TILE_SIZE},RGBA{255.0f, 0.0f, 0.0f, 50.0f}, BORDER_CLR, whiteTextureSlot);
-
-
     // draw pause menu
     if(global_pause){
         // draw menu background
         create_render_square(app_state, HMM_Vec4{global_menuPosition.X, global_menuPosition.Y, 0.0f, 1.0f}, 
-            global_menuSize, {60.0f, 60.0f, 60.0f, 255.0f}, 
+            MENU_SIZE, {60.0f, 60.0f, 60.0f, 255.0f}, 
             {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
 
         global_UIRenderer->DrawText("PAUSE", 1.2f, 
-        {global_menuPosition.X + TILE_SIZE * 3, 
-            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 3.0f}, 
+        {global_menuPosition.X + TILE_SIZE * 1, 
+            global_menuPosition.Y + MENU_SIZE.Y - TILE_SIZE * 3.0f}, 
         {125.0f, 125.0f, 125.0f});
-        
-        if(Button((void *)AppQuit, &im, global_UIRenderer,  "Quit", 
-            HMM_Vec2{global_menuPosition.X + TILE_SIZE * 3, 
-            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 7.0f}, 
-                {0.3f, 0.3f, 0.3f, 1.0f})){
-            // quit
-            glfwSetWindowShouldClose(window, GLFW_TRUE);
-        }
 
         if(Button((void *)draw, &im, global_UIRenderer,  "Continue", 
-            HMM_Vec2{global_menuPosition.X + TILE_SIZE * 3, 
-            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 9.0f}, 
+            HMM_Vec2{global_menuPosition.X + TILE_SIZE * 1, 
+            global_menuPosition.Y + MENU_SIZE.Y - TILE_SIZE * 5.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             global_pause = false;
         }
         
-        if(Button((void *)draw, &im, global_UIRenderer,  "Settings", 
-            HMM_Vec2{global_menuPosition.X + TILE_SIZE * 3, 
-            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 11.0f}, 
+        if(Button((void *)((int *)draw + 1), &im, global_UIRenderer,  "Settings", 
+            HMM_Vec2{global_menuPosition.X + TILE_SIZE * 1, 
+            global_menuPosition.Y + MENU_SIZE.Y - TILE_SIZE * 7.0f}, 
+                {0.3f, 0.3f, 0.3f, 1.0f})){
+            // TODO: Implement Settings
+            // global_pause = false;
+        }
+
+        if(Button((void *)((int *)draw + 2), &im, global_UIRenderer, "Menu", 
+            HMM_Vec2{global_menuPosition.X + TILE_SIZE * 1, 
+            global_menuPosition.Y + MENU_SIZE.Y - TILE_SIZE * 9.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             global_pause = false;
+            global_show_menuboard = true;
+            global_score = 0;
+            global_game_over = true;
         }
     }
 
     // draw game over
     if(global_game_over && !global_show_menuboard && !global_show_leaderboard){
         create_render_square(app_state, HMM_Vec4{global_menuPosition.X, global_menuPosition.Y, 0.0f, 1.0f}, 
-            global_menuSize, {60.0f, 60.0f, 60.0f, 255.0f}, 
+            MENU_SIZE, {60.0f, 60.0f, 60.0f, 255.0f}, 
             {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
 
         global_UIRenderer->DrawText("GAME OVER!", 0.9f, 
         {global_menuPosition.X + TILE_SIZE * 1, 
-            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 3.0f}, 
+            global_menuPosition.Y + MENU_SIZE.Y - TILE_SIZE * 3.0f}, 
         {125.0f, 125.0f, 125.0f});
         
         
@@ -854,19 +891,19 @@ void draw(AppState *app_state, float dt){
         high_score_str += NumToString(555);
         global_UIRenderer->DrawText(high_score_str, 0.8f, 
         {global_menuPosition.X + TILE_SIZE * 1, 
-            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 5.0f},
+            global_menuPosition.Y + MENU_SIZE.Y - TILE_SIZE * 5.0f},
             {200.0f, 200.0f, 200.0f});
 
         std::string score_string = "SCORE - ";
         score_string += NumToString(global_last_game_score);
         global_UIRenderer->DrawText(score_string, 0.8f, 
         {global_menuPosition.X + TILE_SIZE * 1, 
-            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 7.0f}, 
+            global_menuPosition.Y + MENU_SIZE.Y - TILE_SIZE * 7.0f}, 
         {125.0f, 125.0f, 125.0f});
 
         if(Button((void *)AppQuit, &im, global_UIRenderer, "Menu", 
             HMM_Vec2{global_menuPosition.X + TILE_SIZE * 1, 
-            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 9.0f}, 
+            global_menuPosition.Y + MENU_SIZE.Y - TILE_SIZE * 9.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             global_show_menuboard = true;
         }
@@ -874,7 +911,7 @@ void draw(AppState *app_state, float dt){
 
         if(Button((void *)draw, &im, global_UIRenderer,  "Restart", 
             HMM_Vec2{global_menuPosition.X + TILE_SIZE * 1, 
-            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 9.0f}, 
+            global_menuPosition.Y + MENU_SIZE.Y - TILE_SIZE * 11.0f}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
             global_pause = false;
 
@@ -893,27 +930,27 @@ void draw(AppState *app_state, float dt){
     }
 
     // show leader board  
-    global_show_leaderboard = true;  
+    // global_show_leaderboard = true;  
     if(global_show_leaderboard){
-        DrawLeaderBoard(HMM_Vec2{global_menuPosition.X, global_menuPosition.Y}, HMM_Vec2{global_menuSize.X, global_menuSize.Y});        
+        DrawLeaderBoard(HMM_Vec2{global_menuPosition.X, global_menuPosition.Y}, HMM_Vec2{MENU_SIZE.X, MENU_SIZE.Y});        
     }
 
     // show menu board
-    if(global_show_menuboard && false){
+    if(global_show_menuboard){
         create_render_square(app_state, HMM_Vec4{global_menuPosition.X, global_menuPosition.Y, 0.0f, 1.0f}, 
-            global_menuSize, 
+            MENU_SIZE, 
         {60.0f, 60.0f, 60.0f, 255.0f}, {60.0f, 60.0f, 60.0f, 255.0f}, whiteTextureSlot);
 
         global_UIRenderer->DrawText("MENU", 0.9f, 
         {global_menuPosition.X + TILE_SIZE * 1, 
-            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * 3.0f}, 
+            global_menuPosition.Y + MENU_SIZE.Y - TILE_SIZE * 3.0f}, 
         {125.0f, 125.0f, 125.0f});
         
         float y_pos = 5.0f;
         if(Button(&global_pause, &im, global_UIRenderer,  "Play", 
             HMM_Vec2{global_menuPosition.X + TILE_SIZE * 1, 
-            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * y_pos}, 
-                {0.3f, 0.3f, 0.3f, 1.0f})){
+            global_menuPosition.Y + MENU_SIZE.Y - TILE_SIZE * y_pos}, 
+                {255.0f, 255.3f, 50.0f, 1.0f})){
             
             global_pause = false;
 
@@ -934,7 +971,7 @@ void draw(AppState *app_state, float dt){
 
         if(Button(&global_show_leaderboard, &im, global_UIRenderer,  "Leaderboard", 
             HMM_Vec2{global_menuPosition.X + TILE_SIZE * 1, 
-            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * (y_pos + 2)}, 
+            global_menuPosition.Y + MENU_SIZE.Y - TILE_SIZE * (y_pos + 2)}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
                 global_show_leaderboard = true;
                 global_show_menuboard = false;
@@ -944,17 +981,20 @@ void draw(AppState *app_state, float dt){
             #endif
         }
         
+        #ifndef GLFW_PLATFORM_EMSCRIPTEN
         if(Button((void *)&AppQuit, &im, global_UIRenderer,  "Quit", 
             HMM_Vec2{global_menuPosition.X + TILE_SIZE * 1, 
-            global_menuPosition.Y + global_menuSize.Y - TILE_SIZE * (y_pos + 4)}, 
+            global_menuPosition.Y + MENU_SIZE.Y - TILE_SIZE * (y_pos + 4)}, 
                 {0.3f, 0.3f, 0.3f, 1.0f})){
 
             // quit
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
+        #endif
     }
-    
-#endif
+
+    // global_UIRenderer->DrawRectSDF(HMM_Vec3{100.f, 400.0f, 0.0f}, 400.0f, 200.0f, 
+    //     RGBA{255.0f, 0.0f, 0.0f, 255.0f}, RGBA{0.0f, 255.0f, 0.0f, 255.0f}, "assets/white_texture.jpg");
 }
 
 void start(AppState *app_state){
@@ -963,10 +1003,8 @@ void start(AppState *app_state){
     curr_pos = {start_pos.X + TILE_SIZE * 3, start_pos.Y + TILE_SIZE * (TILE_COUNT_Y - 2)};
     
     global_menuPosition = {start_pos.X, start_pos.Y + (TILE_SIZE * 2)};
-    global_menuSize = {TILE_SIZE * TILE_COUNT_X, TILE_SIZE * 0.75f * TILE_COUNT_Y};
 
     global_show_menuboard = true;
-    global_LeaderboardSPS.size = global_menuSize;
     global_LeaderboardSPS.pos = global_menuPosition;
     
     for(int x = 0; x < TILE_COUNT_X; x++){
@@ -1052,7 +1090,7 @@ void update(AppState *app_state, float dt){
         if(ReachedObstacle(curr_pos)){
             global_last_game_score = global_score;
             if(global_score > 0){
-                SaveScore(global_score);
+                SaveScore(global_score, app_state->playerName);
                 global_score = 0;
             }
             global_game_over = true;
@@ -1218,7 +1256,6 @@ void update(AppState *app_state, float dt){
 
     draw(app_state, dt);
     std::string score_str = "SCORE : ";
-    // AddToString(&score_str, global_score);
     score_str += NumToString(global_score);
     
 
@@ -1260,11 +1297,11 @@ void update(AppState *app_state, float dt){
     HMM_Vec2 framet_pos = {start_pos.X + TILE_SIZE * (TILE_COUNT_X + 1), held_blck_pos.Y + TILE_SIZE * 2.5f};
     HMM_Vec2 fps_pos = {start_pos.X + TILE_SIZE * (TILE_COUNT_X + 1), held_blck_pos.Y + TILE_SIZE * 0.5f};
 
-    global_UIRenderer->DrawText(framet_str, 0.5f, {framet_pos.X, framet_pos.Y}, 
-        {200.0f, 200.0f, 200.0f});
+    // global_UIRenderer->DrawText(framet_str, 0.5f, {framet_pos.X, framet_pos.Y}, 
+    //     {200.0f, 200.0f, 200.0f});
         
-    global_UIRenderer->DrawText(fps_str, 0.5f, {fps_pos.X, fps_pos.Y}, 
-        {200.0f, 200.0f, 200.0f});
+    // global_UIRenderer->DrawText(fps_str, 0.5f, {fps_pos.X, fps_pos.Y}, 
+    //     {200.0f, 200.0f, 200.0f});
 
     HMM_Vec2 score_pos = {start_pos.X + TILE_SIZE * (TILE_COUNT_X + 1), held_blck_pos.Y + TILE_SIZE * 5.5f};
     // score_pos.X += (TILE_SIZE.)

@@ -3,7 +3,7 @@
 #include <string>
 #include "shader.h"
 
-unsigned int GetUniformLocation(Shader2 *shader, const char *name){
+unsigned int GetUniformLocation(Shader *shader, const char *name){
     unsigned int result = 0;
     result = glGetUniformLocation(shader->program, name);
     if(result == -1){
@@ -29,7 +29,7 @@ void SetUniformValue(unsigned int uniform_location, unsigned int value){
     glUniform1i(uniform_location, value);
 }
 
-void BindLocation(Shader2 *shader, unsigned int location, const char *value){
+void BindLocation(Shader *shader, unsigned int location, const char *value){
     glBindAttribLocation(shader->program, location, value);
 }
 

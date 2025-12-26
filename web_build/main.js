@@ -29,7 +29,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\Lanny\AppData\Local\Temp\tmp2ryss9ee.js
+// include: C:\Users\Lanny\AppData\Local\Temp\tmpotq9dbh1.js
 Module["expectedDataFileDownloads"] ??= 0;
 
 Module["expectedDataFileDownloads"]++;
@@ -120,6 +120,7 @@ Module["expectedDataFileDownloads"]++;
       }
       Module["FS_createPath"]("/", "assets", true, true);
       Module["FS_createPath"]("/assets", "Passion_One", true, true);
+      Module["FS_createPath"]("/assets", "shaders", true, true);
       /** @constructor */ function DataRequest(start, end, audio) {
         this.start = start;
         this.end = end;
@@ -293,68 +294,76 @@ Module["expectedDataFileDownloads"]++;
       "start": 37611140,
       "end": 37655689
     }, {
-      "filename": "/assets/smooth_guitar.wav",
+      "filename": "/assets/shaders/2d_sdf_shader_fs.glsl",
       "start": 37655689,
-      "end": 41761495,
+      "end": 37655877
+    }, {
+      "filename": "/assets/shaders/2d_sdf_shader_vs.glsl",
+      "start": 37655877,
+      "end": 37656352
+    }, {
+      "filename": "/assets/smooth_guitar.wav",
+      "start": 37656352,
+      "end": 41762158,
       "audio": 1
     }, {
       "filename": "/assets/test.txt",
-      "start": 41761495,
-      "end": 41761535
+      "start": 41762158,
+      "end": 41762198
     }, {
       "filename": "/assets/text_basic_fs.glsl",
-      "start": 41761535,
-      "end": 41761804
+      "start": 41762198,
+      "end": 41762467
     }, {
       "filename": "/assets/text_basic_fs_web.glsl",
-      "start": 41761804,
-      "end": 41762073
+      "start": 41762467,
+      "end": 41762736
     }, {
       "filename": "/assets/text_basic_vs.glsl",
-      "start": 41762073,
-      "end": 41762295
+      "start": 41762736,
+      "end": 41762958
     }, {
       "filename": "/assets/text_basic_vs_web.glsl",
-      "start": 41762295,
-      "end": 41762517
+      "start": 41762958,
+      "end": 41763180
     }, {
       "filename": "/assets/w_button.jpg",
-      "start": 41762517,
-      "end": 41777525
+      "start": 41763180,
+      "end": 41778188
     }, {
       "filename": "/assets/w_button.xcf",
-      "start": 41777525,
-      "end": 41838409
+      "start": 41778188,
+      "end": 41839072
     }, {
       "filename": "/assets/white_texture.jpg",
-      "start": 41838409,
-      "end": 41843836
+      "start": 41839072,
+      "end": 41844499
     }, {
       "filename": "/data.dat",
-      "start": 41843836,
-      "end": 41844349
+      "start": 41844499,
+      "end": 41845012
     } ],
-    "remote_package_size": 41844349
+    "remote_package_size": 41845012
   });
 })();
 
-// end include: C:\Users\Lanny\AppData\Local\Temp\tmp2ryss9ee.js
-// include: C:\Users\Lanny\AppData\Local\Temp\tmpygtw0121.js
+// end include: C:\Users\Lanny\AppData\Local\Temp\tmpotq9dbh1.js
+// include: C:\Users\Lanny\AppData\Local\Temp\tmpxklce13j.js
 // All the pre-js content up to here must remain later on, we need to run
 // it.
 if ((typeof ENVIRONMENT_IS_WASM_WORKER != "undefined" && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != "undefined" && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != "undefined" && ENVIRONMENT_IS_AUDIO_WORKLET)) Module["preRun"] = [];
 
 var necessaryPreJSTasks = Module["preRun"].slice();
 
-// end include: C:\Users\Lanny\AppData\Local\Temp\tmpygtw0121.js
-// include: C:\Users\Lanny\AppData\Local\Temp\tmpij7_sqw6.js
+// end include: C:\Users\Lanny\AppData\Local\Temp\tmpxklce13j.js
+// include: C:\Users\Lanny\AppData\Local\Temp\tmpv5i3ot58.js
 if (!Module["preRun"]) throw "Module.preRun should exist because file support used it; did a pre-js delete it?";
 
 necessaryPreJSTasks.forEach(task => {
   if (Module["preRun"].indexOf(task) < 0) throw "All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?";
 });
 
-// end include: C:\Users\Lanny\AppData\Local\Temp\tmpij7_sqw6.js
+// end include: C:\Users\Lanny\AppData\Local\Temp\tmpv5i3ot58.js
 var arguments_ = [];
 
 var thisProgram = "./this.program";
@@ -5455,6 +5464,8 @@ var _emscripten_cancel_main_loop = () => {
   MainLoop.func = null;
 };
 
+var _emscripten_date_now = () => Date.now();
+
 var _emscripten_get_device_pixel_ratio = () => (typeof devicePixelRatio == "number" && devicePixelRatio) || 1;
 
 var onExits = [];
@@ -8513,8 +8524,8 @@ function checkIncomingModuleAPI() {
 }
 
 var ASM_CONSTS = {
-  254259: () => (navigator.mediaDevices !== undefined && navigator.mediaDevices.getUserMedia !== undefined),
-  254363: () => {
+  254227: () => (navigator.mediaDevices !== undefined && navigator.mediaDevices.getUserMedia !== undefined),
+  254331: () => {
     try {
       var temp = new (window.AudioContext || window.webkitAudioContext);
       var sampleRate = temp.sampleRate;
@@ -8524,7 +8535,7 @@ var ASM_CONSTS = {
       return 0;
     }
   },
-  254534: $0 => {
+  254502: $0 => {
     var device = miniaudio.get_device_by_index($0);
     if (device.scriptNode !== undefined) {
       device.scriptNode.onaudioprocess = function(e) {};
@@ -8545,7 +8556,7 @@ var ASM_CONSTS = {
     }
     miniaudio.untrack_device_by_index($0);
   },
-  255160: ($0, $1, $2, $3, $4) => {
+  255128: ($0, $1, $2, $3, $4) => {
     var channels = $0;
     var sampleRate = $1;
     var bufferSize = $2;
@@ -8646,21 +8657,21 @@ var ASM_CONSTS = {
     }
     return miniaudio.track_device(device);
   },
-  259044: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
-  259110: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
-  259176: $0 => {
+  259012: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
+  259078: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
+  259144: $0 => {
     miniaudio.get_device_by_index($0).webaudio.resume();
   },
-  259233: $0 => {
+  259201: $0 => {
     miniaudio.get_device_by_index($0).webaudio.resume();
   },
-  259290: $0 => {
+  259258: $0 => {
     miniaudio.get_device_by_index($0).webaudio.suspend();
   },
-  259348: $0 => {
+  259316: $0 => {
     miniaudio.get_device_by_index($0).webaudio.suspend();
   },
-  259406: () => {
+  259374: () => {
     if ((window.AudioContext || window.webkitAudioContext) === undefined) {
       return 0;
     }
@@ -8788,6 +8799,8 @@ var dynCall_i = makeInvalidEarlyAccess("dynCall_i");
 
 var dynCall_iiiiii = makeInvalidEarlyAccess("dynCall_iiiiii");
 
+var dynCall_fiif = makeInvalidEarlyAccess("dynCall_fiif");
+
 var dynCall_vif = makeInvalidEarlyAccess("dynCall_vif");
 
 var dynCall_viiiii = makeInvalidEarlyAccess("dynCall_viiiii");
@@ -8846,8 +8859,6 @@ var dynCall_iiiiijj = makeInvalidEarlyAccess("dynCall_iiiiijj");
 
 var dynCall_iiiiiijj = makeInvalidEarlyAccess("dynCall_iiiiiijj");
 
-var dynCall_viif = makeInvalidEarlyAccess("dynCall_viif");
-
 var _asyncify_start_unwind = makeInvalidEarlyAccess("_asyncify_start_unwind");
 
 var _asyncify_stop_unwind = makeInvalidEarlyAccess("_asyncify_stop_unwind");
@@ -8896,6 +8907,7 @@ function assignWasmExports(wasmExports) {
   dynCalls["viifii"] = dynCall_viifii = createExportWrapper("dynCall_viifii", 6);
   dynCalls["i"] = dynCall_i = createExportWrapper("dynCall_i", 1);
   dynCalls["iiiiii"] = dynCall_iiiiii = createExportWrapper("dynCall_iiiiii", 6);
+  dynCalls["fiif"] = dynCall_fiif = createExportWrapper("dynCall_fiif", 4);
   dynCalls["vif"] = dynCall_vif = createExportWrapper("dynCall_vif", 3);
   dynCalls["viiiii"] = dynCall_viiiii = createExportWrapper("dynCall_viiiii", 6);
   dynCalls["vidd"] = dynCall_vidd = createExportWrapper("dynCall_vidd", 4);
@@ -8925,7 +8937,6 @@ function assignWasmExports(wasmExports) {
   dynCalls["iiiiid"] = dynCall_iiiiid = createExportWrapper("dynCall_iiiiid", 6);
   dynCalls["iiiiijj"] = dynCall_iiiiijj = createExportWrapper("dynCall_iiiiijj", 7);
   dynCalls["iiiiiijj"] = dynCall_iiiiiijj = createExportWrapper("dynCall_iiiiiijj", 8);
-  dynCalls["viif"] = dynCall_viif = createExportWrapper("dynCall_viif", 4);
   _asyncify_start_unwind = createExportWrapper("asyncify_start_unwind", 1);
   _asyncify_stop_unwind = createExportWrapper("asyncify_stop_unwind", 0);
   _asyncify_start_rewind = createExportWrapper("asyncify_start_rewind", 1);
@@ -8968,6 +8979,7 @@ var wasmImports = {
   /** @export */ alignfault,
   /** @export */ emscripten_asm_const_int: _emscripten_asm_const_int,
   /** @export */ emscripten_cancel_main_loop: _emscripten_cancel_main_loop,
+  /** @export */ emscripten_date_now: _emscripten_date_now,
   /** @export */ emscripten_get_device_pixel_ratio: _emscripten_get_device_pixel_ratio,
   /** @export */ emscripten_get_gamepad_status: _emscripten_get_gamepad_status,
   /** @export */ emscripten_glfw3_context_destroy: _emscripten_glfw3_context_destroy,
@@ -9069,6 +9081,7 @@ var wasmImports = {
   /** @export */ glVertexAttribPointer: _glVertexAttribPointer,
   /** @export */ glViewport: _glViewport,
   /** @export */ invoke_diii,
+  /** @export */ invoke_fiif,
   /** @export */ invoke_fiii,
   /** @export */ invoke_i,
   /** @export */ invoke_ii,
@@ -9086,7 +9099,6 @@ var wasmImports = {
   /** @export */ invoke_vi,
   /** @export */ invoke_vif,
   /** @export */ invoke_vii,
-  /** @export */ invoke_viif,
   /** @export */ invoke_viifii,
   /** @export */ invoke_viii,
   /** @export */ invoke_viiii,
@@ -9201,10 +9213,10 @@ function invoke_i(index) {
   }
 }
 
-function invoke_viif(index, a1, a2, a3) {
+function invoke_iiiiii(index, a1, a2, a3, a4, a5) {
   var sp = stackSave();
   try {
-    dynCall_viif(index, a1, a2, a3);
+    return dynCall_iiiiii(index, a1, a2, a3, a4, a5);
   } catch (e) {
     stackRestore(sp);
     if (!(e instanceof EmscriptenEH)) throw e;
@@ -9212,10 +9224,10 @@ function invoke_viif(index, a1, a2, a3) {
   }
 }
 
-function invoke_iiiiii(index, a1, a2, a3, a4, a5) {
+function invoke_fiif(index, a1, a2, a3) {
   var sp = stackSave();
   try {
-    return dynCall_iiiiii(index, a1, a2, a3, a4, a5);
+    return dynCall_fiif(index, a1, a2, a3);
   } catch (e) {
     stackRestore(sp);
     if (!(e instanceof EmscriptenEH)) throw e;

@@ -15,10 +15,13 @@ void RunJS(const char *function){
 #endif
 
 void app_start(AppState *app_state){
+    srand(time(0));
+
     std::string val = NumToString(55.14);
     printf("Int to String %s\n", val.c_str());
-
-
+    app_state->playerName = std::string("Player_");
+    int randomVal = rand() % 10001;
+    app_state->playerName += NumToString(randomVal);
     printf("App  Started..\n");
 
     app_state->window_width = global_frame_buffer_width;
@@ -45,11 +48,16 @@ void app_update(AppState *app_state, float dt){
     
     RenderRectangles(app_state, global_textureManager, dt, 0);
     
-    glScissor(320, 350, 360, 220);
+    HMM_Vec2 leaderBoardDim = {0};
+    leaderBoardDim.X = app_state->leaderBoardScreenPos_TopRight.X - app_state->leaderBoardScreenPos_BottomLeft.X; 
+    leaderBoardDim.Y = app_state->leaderBoardScreenPos_TopRight.Y - app_state->leaderBoardScreenPos_BottomLeft.Y; 
+    
+    glScissor(app_state->leaderBoardScreenPos_BottomLeft.X, app_state->leaderBoardScreenPos_BottomLeft.Y, 
+        leaderBoardDim.X, leaderBoardDim.Y);
     glEnable(GL_SCISSOR_TEST);
     RenderRectangles(app_state, global_textureManager, dt, 1);
     glDisable(GL_SCISSOR_TEST);    
-    
+
     unsigned int whiteTextureSlot = global_textureManager->GetTextureSlot("assets/white_texture.jpg");
     if(currentApp == TETRIS){
         Tetris::update(app_state, dt);

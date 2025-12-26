@@ -1,5 +1,5 @@
 #pragma once
 
-struct Shader2{
+struct Shader{
     unsigned int program;
 };

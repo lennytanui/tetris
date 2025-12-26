@@ -59,16 +59,9 @@ bool DoButton(UI_id, text, pos, ...) {
 
 
 */
-// #define BUTTON_NORMAL_COLOR {20.0f / 255.0f, 12.0f / 255.0f, 12.0f / 255.0f, 1.0f} // #0c0c0c
 #define BUTTON_NORMAL_COLOR {20.0f / 255.0f, 122.0f / 255.0f, 72.0f / 255.0f, 1.0f} // #0c0c0c
-// #define BUTTON_NORMAL_COLOR {12.0f / 255.0f, 12.0f / 255.0f, 12.0f / 255.0f, 1.0f} // #0c0c0c
 #define BUTTON_HOT_COLOR {47.0f / 255.0f, 36.0f / 255.0f, 36.0f / 255.0f, 1.0f} // #252424
 #define BUTTON_ACTIVE_COLOR {82.0f / 255.0f, 60.0f / 255.0f, 60.0f / 255.0f, 1.0f} // #3e3c3c
-
-
-Shader2 basic_2d_shader = {};
-unsigned int vao2d = 0;
-unsigned int vbo2d = 0;
 
 void SetActive(InputManager *im, void *active_ui){
     im->cursorClickPos = im->cursorPos;
@@ -88,22 +81,25 @@ void SetNotHot(InputManager *im){
 }
 
 UIRenderer::UIRenderer(TextureManager *textureManager): m_textureManager{textureManager}{
+    m_viewMatrix = HMM_M4D(1.0f);
+    m_basic_2d_shader.program = LoadShaders("assets/basic_ui_shader_vs_web.glsl", "assets/basic_ui_shader_fs_web.glsl");
+    m_basic_2d_shader_sdf.program = LoadShaders("assets/shaders/2d_sdf_shader_vs.glsl", "assets/shaders/2d_sdf_shader_fs.glsl");
 
-    basic_2d_shader.program = LoadShaders("assets/basic_ui_shader_vs_web.glsl", "assets/basic_ui_shader_fs_web.glsl");
-    glUseProgram(basic_2d_shader.program);
+    // Configuring basic 2d shader and 2d vao/vbo
+    glUseProgram(m_basic_2d_shader.program);
     
-    unsigned int u_projection_matrix = GetUniformLocation(&basic_2d_shader, "uProjectionMatrix");
+    unsigned int u_projection_matrix = GetUniformLocation(&m_basic_2d_shader, "uProjectionMatrix");
     SetUniformValue(u_projection_matrix, m_projection_ortho);
     
-    unsigned int u_resolution = GetUniformLocation(&basic_2d_shader, "u_resolution");
+    unsigned int u_resolution = GetUniformLocation(&m_basic_2d_shader, "u_resolution");
     SetUniformValue(u_resolution, HMM_Vec2{global_ortho_width, global_ortho_height});
     
-    glGenVertexArrays(1, &vao2d);
-    glGenBuffers(1, &vbo2d);
-    glBindVertexArray(vao2d);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo2d);
+    glGenVertexArrays(1, &m_basic_2d_vao);
+    glGenBuffers(1, &m_basic_2d_vbo);
+    glBindVertexArray(m_basic_2d_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_basic_2d_vbo);
 
-    const unsigned int stride = 9;
+    unsigned int stride = 9;
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * stride * 6, NULL,  GL_DYNAMIC_DRAW);
     
     glEnableVertexAttribArray(0);
@@ -122,26 +118,61 @@ UIRenderer::UIRenderer(TextureManager *textureManager): m_textureManager{texture
     glBindVertexArray(0);
 
     glUseProgram(0);
+    
+    // Configuring sdf 2d shader and sdf vao/vbo
+    glUseProgram(m_basic_2d_shader_sdf.program);
+    
+    u_projection_matrix = GetUniformLocation(&m_basic_2d_shader_sdf, "uProjectionMatrix");
+    SetUniformValue(u_projection_matrix, m_projection_ortho);
+
+    unsigned int u_view_matrix = GetUniformLocation(&m_basic_2d_shader_sdf, "uViewMatrix");
+    SetUniformValue(u_view_matrix, m_viewMatrix);
+    
+    u_resolution = GetUniformLocation(&m_basic_2d_shader_sdf, "u_resolution");
+    SetUniformValue(u_resolution, HMM_Vec2{global_ortho_width, global_ortho_height});
+    
+    glGenVertexArrays(1, &m_basic_2d_vao_sdf);
+    glGenBuffers(1, &m_basic_2d_vbo_sdf);
+    glBindVertexArray(m_basic_2d_vao_sdf);
+    glBindBuffer(GL_ARRAY_BUFFER, m_basic_2d_vbo_sdf);
+
+    stride = 11;
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * stride * 6, NULL,  GL_DYNAMIC_DRAW);
+    
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride * sizeof(float), 0);
+    
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride * sizeof(float), (GLvoid*)(3 * sizeof(float)));
+    
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, stride * sizeof(float), (GLvoid*)(7 * sizeof(float)));
+    
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    glUseProgram(0);
 }
 
 void UIRenderer::DrawRect(HMM_Vec2 pos, float width, float height, RGBA color, const char *texturePath){
     // draw rect
-    glUseProgram(basic_2d_shader.program);
+    glUseProgram(m_basic_2d_shader.program);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
     glDisable(GL_DEPTH_TEST);
     
-    unsigned int u_projection_matrix = GetUniformLocation(&basic_2d_shader, "uProjectionMatrix");
+    unsigned int u_projection_matrix = GetUniformLocation(&m_basic_2d_shader, "uProjectionMatrix");
     SetUniformValue(u_projection_matrix, m_projection_ortho);
     
-    glBindVertexArray(vao2d);
+    glBindVertexArray(m_basic_2d_vao);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_textureManager->GetTexture(texturePath));
     
     float outline_width = 1.0f;
     HMM_Vec2 center_pos = {pos.X + width / 2.0f, pos.Y + height / 2.0f};
     const unsigned int stride = 9;
+    
     float texSlot = 1.0f;
     float vertices[6][stride] = {
         {pos.X, pos.Y, color.r, color.g, color.b, color.a, 
@@ -159,7 +190,7 @@ void UIRenderer::DrawRect(HMM_Vec2 pos, float width, float height, RGBA color, c
             0.0f, 0.0f, texSlot},
     };
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo2d);
+    glBindBuffer(GL_ARRAY_BUFFER, m_basic_2d_vbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     
@@ -169,6 +200,65 @@ void UIRenderer::DrawRect(HMM_Vec2 pos, float width, float height, RGBA color, c
     glBindTexture(GL_TEXTURE_2D, 0);
     glUseProgram(0);
 }
+
+void UIRenderer::DrawRectSDF(HMM_Vec3 pos, float width, float height, 
+    RGBA clr, RGBA borderClr, const char *texturePath){
+    // draw rect
+    glUseProgram(m_basic_2d_shader_sdf.program);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+    glDisable(GL_DEPTH_TEST);
+    
+    unsigned int u_projection_matrix = GetUniformLocation(&m_basic_2d_shader_sdf, "uProjectionMatrix");
+    SetUniformValue(u_projection_matrix, m_projection_ortho);
+    
+    glBindVertexArray(m_basic_2d_vao_sdf);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_textureManager->GetTexture(texturePath));
+    
+    float outline_width = 1.0f;
+    HMM_Vec2 center_pos = {pos.X + width / 2.0f, pos.Y + height / 2.0f};
+    const unsigned int stride = 11;
+
+    clr.r /= 255.0f;
+    clr.g /= 255.0f;
+    clr.b /= 255.0f;
+    clr.a /= 255.0f;
+    
+    float texSlot = 1.0f;
+    float vertices[6][stride] = {
+        {pos.X, pos.Y, pos.Z, clr.r, clr.g, clr.b, clr.a, 
+            borderClr.r, borderClr.g, borderClr.b, borderClr.a, 
+        },
+        {pos.X + width, pos.Y, pos.Z, clr.r, clr.g, clr.b, clr.a,
+            borderClr.r, borderClr.g, borderClr.b, borderClr.a,
+        },
+        {pos.X + width, pos.Y + height, pos.Z, clr.r, clr.g, clr.b, clr.a,
+            borderClr.r, borderClr.g, borderClr.b, borderClr.a,
+        },
+        {pos.X + width, pos.Y + height, pos.Z, clr.r, clr.g, clr.b, clr.a, 
+            borderClr.r, borderClr.g, borderClr.b, borderClr.a,
+        },
+        {pos.X, pos.Y + height, pos.Z, clr.r, clr.g, clr.b, clr.a,
+            borderClr.r, borderClr.g, borderClr.b, borderClr.a,
+        },
+        {pos.X, pos.Y, pos.Z, clr.r, clr.g, clr.b, clr.a,
+            borderClr.r, borderClr.g, borderClr.b, borderClr.a,
+        },
+    };
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_basic_2d_vbo_sdf);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+    glDisable(GL_BLEND);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glUseProgram(0);
+}
+
 
 // NOTE (Lenny) : ui will be draw relative to the bottom left of this panel
 unsigned int UI_Begin(InputManager *im, HMM_Vec2 pos){
@@ -184,7 +274,22 @@ unsigned int UI_End(InputManager *im){
     return true;
 }
 
-#define BUTTON_PADDING 5.0f;
+float GetTextWidth(UIRenderer *renderer, std::string value, float scale){
+    float result = 0;
+    
+    char c = '0';
+    for(auto it = value.begin(); it != value.end(); ++it){
+        c = *it;
+        // Note (Lenny) : should have variable for active character table
+        Character ch = renderer->GetCharacterTable()[0].characters[c];
+        
+        result += (ch.advance >> 6) * scale;
+    }
+
+    return result;
+}
+
+#define BUTTON_PADDING 7.0f
 unsigned int Button(void *id, InputManager *im, UIRenderer *renderer, std::string label, HMM_Vec2 pos, RGBA color){
 
     int result = 0;
@@ -206,7 +311,6 @@ unsigned int Button(void *id, InputManager *im, UIRenderer *renderer, std::strin
     }
 
     pos += im->parent_pos;
-    // float textXPos = xpos;
     HMM_Vec2 textPos = pos;
     float width = textWidth;
     float height = 48;
@@ -253,7 +357,9 @@ unsigned int Button(void *id, InputManager *im, UIRenderer *renderer, std::strin
 
     textPos.Y = pos.Y + (height / 2.0f) - (tallest.size.Y / 2.0f);
 
-    renderer->DrawRect(pos, width, height, color, "assets/white_texture.jpg");    
+    pos.X -= BUTTON_PADDING;
+    pos.Y -= BUTTON_PADDING;
+    renderer->DrawRect(pos, width + BUTTON_PADDING * 2, height + BUTTON_PADDING * 2, color, "assets/white_texture.jpg");    
 
     unsigned int error = glGetError();
     Text text = {};
@@ -413,8 +519,6 @@ void ScrollablePanel(void *id, InputManager *im, UIRenderer *renderer, const cha
             }
 
             sps->scrollTime += im->dt;
-            // printf("Cursor Change %f\n", (im->cursorClickPos.Y - im->cursorPos.Y));
-            // printf("Cursor Click Pos {%f, %f}\n", im->cursorClickPos.X, im->cursorClickPos.Y);
             
             sps->scrollHeight = sps->initialScrollHeight + (im->cursorClickPos.Y - im->cursorPos.Y);
             if(sps->scrollHeight < 0){
