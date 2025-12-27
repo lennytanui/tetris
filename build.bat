@@ -307,7 +307,7 @@ if %ENV% == WEB (
         -l:libsoloud_em.a -lopenal -lembind -sEXPORTED_FUNCTIONS="['_main', '_malloc']" -sEXPORTED_RUNTIME_METHODS="['HEAPF32']" -sALLOW_MEMORY_GROWTH -sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE='$ccall'^
         -sASSERTIONS=1 -sNO_EXIT_RUNTIME=0  -sNO_DISABLE_EXCEPTION_CATCHING^
         -sWASM=1 -sSAFE_HEAP=1 -sFULL_ES3=1^
-        -sUSE_WEBGL2=1 --shell-file .\shell.html -o main.html -sASYNCIFY=1^
+        -sUSE_WEBGL2=1 --shell-file .\shell.html -o main.html --pre-js patch.js -sASYNCIFY=1^
         --preload-file ..\vendor\assets@.\assets --preload-file ..\vendor\data.dat@.\
     popd
 )
