@@ -486,6 +486,9 @@ extern "C" EMSCRIPTEN_KEEPALIVE void GetLeaderBoard(){
 
     // Print the extracted data
     int length = obj["length"].as<int>();
+    // printf("--- FETCHED SCORES ---\n");
+
+    global_FetchedScores.clear(); // ensure no elents in list
     for(int i = 0; i < length; i++){
         int id = obj[i]["id"].as<int>();
         std::string username = obj[i]["username"].as<std::string>();
@@ -502,17 +505,16 @@ extern "C" EMSCRIPTEN_KEEPALIVE void GetLeaderBoard(){
         global_FetchedScores.push_back(playerScore);
 
         #if 0
-        printf("--- FETCHED VALUES [%i] ---\n", i);
 
-        printf("    ID : %i\n", id);
+        printf("    \nID : %i\n", id);
         printf("    USERNAME : %s\n", username.c_str());
         printf("    SCORE : %i\n", score);
         printf("    DATE : %s\n", date.c_str());
         printf("    TIME : %s\n", time.c_str());
         
-        printf("--- END ---\n");
         #endif
     }
+    // printf("--- END ---\n");
 }
 #endif
 
