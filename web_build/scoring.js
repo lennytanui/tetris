@@ -1,6 +1,6 @@
 
 function SaveScore(score){
-    fetch("http://localhost:3000/scores", {
+    fetch("/scores", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -18,7 +18,7 @@ function SaveScore(score){
 // GetScores();
 async function GetScores(){
     let result = [];
-    await fetch("http://localhost:3000/scores", {
+    await fetch("/scores", {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
