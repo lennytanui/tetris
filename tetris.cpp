@@ -547,13 +547,13 @@ void DrawLeaderBoard(HMM_Vec2 menuPos, HMM_Vec2 menuSize){
     HMM_Vec2 leaderBoardScreenPos_BottomLeft = WorldToScreen2D(panelPos, 
         global_app_state.view, 
         global_app_state.proj, 
-        HMM_Vec2{(float)global_ortho_width, (float)global_ortho_height});
+        HMM_Vec2{(float)global_frame_buffer_width, (float)global_frame_buffer_height});
     
     HMM_Vec2 leaderBoardScreenPos_TopRight = WorldToScreen2D(
         HMM_Vec2{panelPos.X + panelSize.X + sliderSize.X, 
         panelPos.Y + panelSize.Y}, 
         global_app_state.view, global_app_state.proj, 
-        HMM_Vec2{(float)global_ortho_width, (float)global_ortho_height});
+        HMM_Vec2{(float)global_frame_buffer_width, (float)global_frame_buffer_height});
     
     global_app_state.leaderBoardScreenPos_BottomLeft = leaderBoardScreenPos_BottomLeft;
     global_app_state.leaderBoardScreenPos_TopRight = leaderBoardScreenPos_TopRight;

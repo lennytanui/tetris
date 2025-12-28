@@ -33,7 +33,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     global_frame_buffer_height = height;
     glViewport(0, 0, global_frame_buffer_width, global_frame_buffer_height);
     
-    global_ortho_width = global_frame_buffer_width;
+    global_ortho_width = 1000.0f;
     global_ortho_height = global_ortho_width;
     global_ortho_height *= ((float)global_frame_buffer_height / (float)global_frame_buffer_width);
 
