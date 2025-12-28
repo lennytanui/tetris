@@ -29,7 +29,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\Lanny\AppData\Local\Temp\tmpas1ofbvw.js
+// include: C:\Users\Lanny\AppData\Local\Temp\tmphlt_jz4g.js
 Module["expectedDataFileDownloads"] ??= 0;
 
 Module["expectedDataFileDownloads"]++;
@@ -347,15 +347,15 @@ Module["expectedDataFileDownloads"]++;
   });
 })();
 
-// end include: C:\Users\Lanny\AppData\Local\Temp\tmpas1ofbvw.js
-// include: C:\Users\Lanny\AppData\Local\Temp\tmpg87j9cfx.js
+// end include: C:\Users\Lanny\AppData\Local\Temp\tmphlt_jz4g.js
+// include: C:\Users\Lanny\AppData\Local\Temp\tmpzv6ntbhk.js
 // All the pre-js content up to here must remain later on, we need to run
 // it.
 if ((typeof ENVIRONMENT_IS_WASM_WORKER != "undefined" && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != "undefined" && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != "undefined" && ENVIRONMENT_IS_AUDIO_WORKLET)) Module["preRun"] = [];
 
 var necessaryPreJSTasks = Module["preRun"].slice();
 
-// end include: C:\Users\Lanny\AppData\Local\Temp\tmpg87j9cfx.js
+// end include: C:\Users\Lanny\AppData\Local\Temp\tmpzv6ntbhk.js
 // include: patch.js
 Module["locateFile"] = function(path, prefix) {
   if (path.endsWith(".wasm")) {
@@ -365,14 +365,14 @@ Module["locateFile"] = function(path, prefix) {
 };
 
 // end include: patch.js
-// include: C:\Users\Lanny\AppData\Local\Temp\tmpe0jg1zq9.js
+// include: C:\Users\Lanny\AppData\Local\Temp\tmppobe1qux.js
 if (!Module["preRun"]) throw "Module.preRun should exist because file support used it; did a pre-js delete it?";
 
 necessaryPreJSTasks.forEach(task => {
   if (Module["preRun"].indexOf(task) < 0) throw "All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?";
 });
 
-// end include: C:\Users\Lanny\AppData\Local\Temp\tmpe0jg1zq9.js
+// end include: C:\Users\Lanny\AppData\Local\Temp\tmppobe1qux.js
 var arguments_ = [];
 
 var thisProgram = "./this.program";
@@ -8533,8 +8533,8 @@ function checkIncomingModuleAPI() {
 }
 
 var ASM_CONSTS = {
-  254243: () => (navigator.mediaDevices !== undefined && navigator.mediaDevices.getUserMedia !== undefined),
-  254347: () => {
+  254259: () => (navigator.mediaDevices !== undefined && navigator.mediaDevices.getUserMedia !== undefined),
+  254363: () => {
     try {
       var temp = new (window.AudioContext || window.webkitAudioContext);
       var sampleRate = temp.sampleRate;
@@ -8544,7 +8544,7 @@ var ASM_CONSTS = {
       return 0;
     }
   },
-  254518: $0 => {
+  254534: $0 => {
     var device = miniaudio.get_device_by_index($0);
     if (device.scriptNode !== undefined) {
       device.scriptNode.onaudioprocess = function(e) {};
@@ -8565,7 +8565,7 @@ var ASM_CONSTS = {
     }
     miniaudio.untrack_device_by_index($0);
   },
-  255144: ($0, $1, $2, $3, $4) => {
+  255160: ($0, $1, $2, $3, $4) => {
     var channels = $0;
     var sampleRate = $1;
     var bufferSize = $2;
@@ -8666,21 +8666,21 @@ var ASM_CONSTS = {
     }
     return miniaudio.track_device(device);
   },
-  259028: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
-  259094: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
-  259160: $0 => {
+  259044: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
+  259110: $0 => miniaudio.get_device_by_index($0).webaudio.sampleRate,
+  259176: $0 => {
     miniaudio.get_device_by_index($0).webaudio.resume();
   },
-  259217: $0 => {
+  259233: $0 => {
     miniaudio.get_device_by_index($0).webaudio.resume();
   },
-  259274: $0 => {
+  259290: $0 => {
     miniaudio.get_device_by_index($0).webaudio.suspend();
   },
-  259332: $0 => {
+  259348: $0 => {
     miniaudio.get_device_by_index($0).webaudio.suspend();
   },
-  259390: () => {
+  259406: () => {
     if ((window.AudioContext || window.webkitAudioContext) === undefined) {
       return 0;
     }

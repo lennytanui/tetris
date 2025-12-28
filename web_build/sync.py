@@ -1,6 +1,6 @@
 import os
 import shutil
-from time import sleep
+from time import sleep, gmtime, strftime
 
 dirpath = os.path.dirname(os.path.realpath(__file__))
 
@@ -21,7 +21,7 @@ def watchFile():
         currentModifiedTime = os.path.getmtime(filepath)
 
         if(currentModifiedTime != timeModified):
-            print(filepath, " has been modified")
+            print(filepath, " has been modified @", strftime("%Y-%m-%d %H:%M:%S", gmtime()))
             fileModifications[index]["timeModified"] = currentModifiedTime
             newDestination = "c:\\dev\\lennyscanvas\\public\\"
 

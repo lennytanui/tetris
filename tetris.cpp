@@ -1117,6 +1117,7 @@ void update(AppState *app_state, float dt){
     testSquarePos.Y = curr_pos.Y;
 
     // Tetris main calculations
+    // Game in play
     if(!global_game_over && !global_pause && !global_show_menuboard && !global_show_leaderboard){
 
         if(global_time_to_next_move <= 0){ // Move down
@@ -1151,7 +1152,6 @@ void update(AppState *app_state, float dt){
                     }
 
                 }
-                // global_lines_count_to_clear--;
 
                 // shift down
                 if(global_time_to_clear_lines <= 0){
@@ -1178,7 +1178,7 @@ void update(AppState *app_state, float dt){
             }
         }
 
-        // swiping and such
+        // mobile friendly : swiping and such
         HMM_Vec2 cursorPos = im.cursorPos;
 
         PanelState panelState = Panel(&im.cursorPos, &im, global_UIRenderer, "assets/white_texture.jpg", 
@@ -1222,7 +1222,12 @@ void update(AppState *app_state, float dt){
                     curr_pos = oldPos;
                 }
             }
+        }else{
+            if(mobileSliding){
+                panelState.clicked = true;
+            }
         }
+
 
         if(panelState.clicked == 1){
             mobileSliding = false;
