@@ -475,10 +475,7 @@ void RenderRectangles(AppState *app_state, TextureManager *textureManager, float
         glUniform1i(texture_1_loc, 1);
         
         glUseProgram(0);
-        float ortho_height = 1000;
-        ortho_height *= ((float)global_frame_buffer_height / (float)global_frame_buffer_width);
-
-        app_state->proj = HMM_Orthographic_LH_NO(0.0f, 1000.0f, 0.0f, ortho_height, 0.0f, 10.0f);
+        app_state->proj = HMM_Orthographic_LH_NO(0.0f, global_ortho_width, 0.0f, global_ortho_height, 0.0f, 10.0f);
 
         app_state->initialized = true;
     }

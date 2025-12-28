@@ -24,8 +24,12 @@ void app_start(AppState *app_state){
     app_state->playerName += NumToString(randomVal);
     printf("App  Started..\n");
 
-    app_state->window_width = global_frame_buffer_width;
-    app_state->window_height = global_frame_buffer_height;
+    app_state->window_width = global_window_width;
+    app_state->window_height = global_window_height;
+    
+    app_state->ortho_width = 1000.0f;
+    app_state->ortho_height = app_state->ortho_width;
+    app_state->ortho_height *= ((float)global_frame_buffer_height / (float)global_frame_buffer_width);
   
     global_textureManager = new TextureManager();
     global_textureManager->AddTexture("assets/white_texture.jpg");

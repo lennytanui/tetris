@@ -480,7 +480,6 @@ extern "C" EMSCRIPTEN_KEEPALIVE void GetLeaderBoard(){
 
     emscripten::val obj = emscripten::val::take_ownership(GetScores());
     
-    
     // Note: date and time can be accessed similarly as std::string
     // std::string date = score_object["date"].as<std::string>();
 
@@ -488,7 +487,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE void GetLeaderBoard(){
     int length = obj["length"].as<int>();
     // printf("--- FETCHED SCORES ---\n");
 
-    global_FetchedScores.clear(); // ensure no elents in list
+    global_FetchedScores.clear(); // empty the list
     for(int i = 0; i < length; i++){
         int id = obj[i]["id"].as<int>();
         std::string username = obj[i]["username"].as<std::string>();
@@ -540,25 +539,25 @@ void DrawLeaderBoard(HMM_Vec2 menuPos, HMM_Vec2 menuSize){
 
     global_LeaderboardSPS.pos = global_menuPosition + HMM_Vec2{0, 100.0f};
 
-    float ortho_width = 1000.0f;
-    float ortho_height = ortho_width;
-    ortho_height *= ((float)global_frame_buffer_height / (float)global_frame_buffer_width);
-
     // convert leaderboard position to screen coordinates
-    HMM_Vec2 leaderBoardScreenPos_BottomLeft = WorldToScreen2D(global_LeaderboardSPS.pos, 
+    
+    panelPos = global_LeaderboardSPS.pos;
+    panelSize = {global_LeaderboardSPS.size.X - sliderSize.X, scoresToDisplayCount * leader_board_score_height};
+
+    HMM_Vec2 leaderBoardScreenPos_BottomLeft = WorldToScreen2D(panelPos, 
         global_app_state.view, 
         global_app_state.proj, 
-        HMM_Vec2{(float)ortho_width, (float)ortho_height});
+        HMM_Vec2{(float)global_ortho_width, (float)global_ortho_height});
     
-    HMM_Vec2 leaderBoardScreenPos_TopRight = WorldToScreen2D(global_LeaderboardSPS.pos + global_LeaderboardSPS.size, global_app_state.view, 
-        global_app_state.proj, 
-        HMM_Vec2{(float)ortho_width, (float)ortho_height});
+    HMM_Vec2 leaderBoardScreenPos_TopRight = WorldToScreen2D(
+        HMM_Vec2{panelPos.X + panelSize.X + sliderSize.X, 
+        panelPos.Y + panelSize.Y}, 
+        global_app_state.view, global_app_state.proj, 
+        HMM_Vec2{(float)global_ortho_width, (float)global_ortho_height});
     
     global_app_state.leaderBoardScreenPos_BottomLeft = leaderBoardScreenPos_BottomLeft;
     global_app_state.leaderBoardScreenPos_TopRight = leaderBoardScreenPos_TopRight;
-
-    panelPos = global_LeaderboardSPS.pos;
-    panelSize = {global_LeaderboardSPS.size.X - sliderSize.X, scoresToDisplayCount * leader_board_score_height};
+    
     ScrollablePanel((void *)DrawLeaderBoard, &im, global_UIRenderer, "assets/white_texture.jpg", &global_LeaderboardSPS);
 
     HMM_Vec2 leaderBoardTopLeft = {panelPos.X, panelPos.Y + leader_board_score_height * (scoresToDisplayCount - 3)};
@@ -610,13 +609,13 @@ void DrawLeaderBoard(HMM_Vec2 menuPos, HMM_Vec2 menuSize){
             leaderBoardTopLeft.Y + scrollOffset - leader_board_score_height * i, 0.0f, 1.0f}, 
             {panelSize.X, leader_board_score_height}, 
         color, color, whiteTextureSlot, 1);
-
-        glScissor(leaderBoardScreenPos_BottomLeft.X, leaderBoardScreenPos_BottomLeft.Y, 
-            leaderBoardScreenPos_TopRight.X - leaderBoardScreenPos_BottomLeft.X, 
-            leaderBoardScreenPos_TopRight.Y - leaderBoardScreenPos_BottomLeft.Y);
-        glEnable(GL_SCISSOR_TEST);
-
+        
         if(!shifting){
+    
+            glScissor(leaderBoardScreenPos_BottomLeft.X, leaderBoardScreenPos_BottomLeft.Y, 
+                leaderBoardScreenPos_TopRight.X - leaderBoardScreenPos_BottomLeft.X, 
+                leaderBoardScreenPos_TopRight.Y - leaderBoardScreenPos_BottomLeft.Y);
+            glEnable(GL_SCISSOR_TEST);
             // Draw Ranking
             std::string rank = std::to_string(global_LeaderboardSPS.start + i + 1);
 
@@ -672,7 +671,7 @@ void DrawLeaderBoard(HMM_Vec2 menuPos, HMM_Vec2 menuSize){
 
 void Resize_UpdatePositions(){
     HMM_Vec2 old_start_pos = {start_pos.X, start_pos.Y};
-    
+
     start_pos.X = global_ortho_width / 2.0f;
     start_pos.X -= (TILE_SIZE * TILE_COUNT_X) / 2.0f;
     start_pos.Y = global_ortho_height / 2.0f;
@@ -684,6 +683,9 @@ void Resize_UpdatePositions(){
     held_blck_pos = {global_ortho_width / 2.0f, start_pos.Y + TILE_SIZE * TILE_COUNT_Y - TILE_SIZE * 8};
     held_blck_pos.X -= (TILE_SIZE * TILE_COUNT_X) / 2.0f;
     held_blck_pos.X -= TILE_SIZE * 5.0f;
+
+    curr_pos = {start_pos.X + TILE_SIZE * 3, start_pos.Y + TILE_SIZE * (TILE_COUNT_Y - 2)};
+    global_menuPosition = {start_pos.X, start_pos.Y + (TILE_SIZE * 2)};
 }
 
 void UpdateDimensions(){
@@ -691,7 +693,7 @@ void UpdateDimensions(){
     
     global_UIRenderer->UpdateTextRendererDimensions(global_ortho_width, global_ortho_height);
 
-    global_app_state.proj = HMM_Orthographic_LH_NO(0.0f, 1000, 0.0f, global_ortho_height, 0.0f, 10.0f);
+    global_app_state.proj = HMM_Orthographic_LH_NO(0.0f, global_ortho_width, 0.0f, global_ortho_height, 0.0f, 10.0f);
 }
 
 void draw(AppState *app_state, float dt){
@@ -1002,9 +1004,6 @@ void draw(AppState *app_state, float dt){
 void start(AppState *app_state){
     GetLeaderBoard();
     Resize_UpdatePositions();
-    curr_pos = {start_pos.X + TILE_SIZE * 3, start_pos.Y + TILE_SIZE * (TILE_COUNT_Y - 2)};
-    
-    global_menuPosition = {start_pos.X, start_pos.Y + (TILE_SIZE * 2)};
 
     global_show_menuboard = true;
     global_LeaderboardSPS.pos = global_menuPosition;

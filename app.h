@@ -43,6 +43,8 @@ struct AppState{
 
     int window_width;
     int window_height;
+    int ortho_width;
+    int ortho_height;
 
     RenderBatch batches[5];
 
