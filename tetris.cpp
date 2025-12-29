@@ -18,28 +18,6 @@
 #include <random>
 #include <fstream>
 
-/**
-    TODO: [x] make it so the tiles do not move into other tiles when
-        moving right and left
-    [X] check for new rows completed after a row everything shifts
-        down
-    [X] fix first pieces bug when it reaches down
-    [X] create scoring system
-    [] add options for 4 different resolutions including
-        full screen
-    [X] game over screen
-        shows score, and options to restart or quit
-    [x] randomize pieces
-    [x] holding system
-    [] music volume slider
-    [] mute setting
-    [] leaderboard that stores the time and date of each play
-    [] Nicer Looking Buttons
-    [] smooth text rendering
-    [] write the setup documentation
-    [] optimizations
-*/
-
 #define TILE_COUNT_X 10
 #define TILE_COUNT_Y 18
 
@@ -48,6 +26,9 @@
 #define BORDER_CLR {72.0f, 79.0f, 72.0f, 0.0f}
 #define TILE_CLR {16.0f, 31.0f, 17.0f, 255.0f}
 #define BACKGROUND_COLOR {50.0f, 50.0f, 50.0f, 255.0f}
+#define GOLD_COLOR {175, 149, 0, 255.0f}
+#define BRONZE_COLOR {106, 56, 5, 255.0f}
+#define SILVER_COLOR {180, 180, 180, 255.0f}
 #define TIME_TO_CLEAR_ROW 1.0f
 
 struct Tile{
@@ -141,8 +122,8 @@ InputManager im = {};
 HMM_Vec2 testSquarePos = {50.0f, 50.0f};
 static bool mobileSliding = false;
 static HMM_Vec2 initialPiecePos = {0}; // for mobile sliding
-static float slideTime = 0.0f;
-static float verticalSlideTime = 0.5f;
+static float slideTime = 0.0f; // keeps track of mobile sliding.
+static float verticalSlideTime = 0.7f; // if slideTime is within this, the piece phases down
 
 
 HMM_Vec2 global_menuPosition = {0};
@@ -164,7 +145,6 @@ void SetCursorPosition(float x, float y){
         
         im.cursorPos = HMM_Vec2{cursor_pos.X, cursor_pos.Y};
     }
-    
 }
 
 namespace Tetris{
@@ -603,8 +583,18 @@ void DrawLeaderBoard(HMM_Vec2 menuPos, HMM_Vec2 menuSize){
 
         if(global_LeaderboardSPS.start + i >= global_FetchedScores.size()) break;
 
-        RGBA color = (i % 2 == 0) ? RGBA{96.0f, 95.0f, 94.0f, 255.0f} : RGBA{188.0f, 172.0f, 155.0f, 255.0f};
+        RGBA color = {0};
        
+        if(i == 0){
+            color = GOLD_COLOR;
+        } else if (i == 1){
+            color = SILVER_COLOR;
+        } else if (i == 2){
+            color = BRONZE_COLOR;
+        }else{
+            color = (i % 2 == 0) ? RGBA{96.0f, 95.0f, 94.0f, 255.0f} : RGBA{188.0f, 172.0f, 155.0f, 255.0f};
+        }
+
         create_render_square(app_state, {panelPos.X,
             leaderBoardTopLeft.Y + scrollOffset - leader_board_score_height * i, 0.0f, 1.0f}, 
             {panelSize.X, leader_board_score_height}, 
