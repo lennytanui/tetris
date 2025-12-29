@@ -531,7 +531,7 @@ void DrawLeaderBoard(HMM_Vec2 menuPos, HMM_Vec2 menuSize){
     
     HMM_Vec2 leaderBoardScreenPos_TopRight = WorldToScreen2D(
         HMM_Vec2{panelPos.X + panelSize.X + sliderSize.X, 
-        panelPos.Y + panelSize.Y}, 
+        panelPos.Y + panelSize.Y - 2 * leader_board_score_height}, 
         global_app_state.view, global_app_state.proj, 
         HMM_Vec2{(float)global_frame_buffer_width, (float)global_frame_buffer_height});
     

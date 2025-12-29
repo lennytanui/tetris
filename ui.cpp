@@ -547,5 +547,89 @@ unsigned int DrawUIText(UIRenderer *renderer, InputManager *im, float scale, std
     return true;
 }
 
+unsigned int EntryBox(void *id, InputManager *im, UIRenderer *renderer, 
+    std::string *enteredValue, HMM_Vec2 pos, RGBA color){
+
+    int result = 0;
+    float scale = 1.0f; // should be passed in 
+    
+    Character tallest = {};
+    char c = '0';
+    float textWidth = 0.0f;
+
+    for(auto it = enteredValue->begin(); it != enteredValue->end(); ++it){
+        c = *it;
+        // Note (Lenny) : should have variable for active character table
+        Character ch = renderer->GetCharacterTable()[0].characters[c];
+        if(ch.size.Y > tallest.size.Y){
+            tallest = ch;
+        }
+
+        textWidth += (ch.advance >> 6) * scale;
+    }
+
+    pos += im->parent_pos;
+    HMM_Vec2 textPos = pos;
+    float width = textWidth;
+    float height = 48;
+
+    int state = glfwGetMouseButton(im->window, GLFW_MOUSE_BUTTON_LEFT);
+    
+    if(im->cursorPos.X >= pos.X && im->cursorPos.X <= pos.X + width 
+        && (im->cursorPos.Y) >= pos.Y && (im->cursorPos.Y) <= pos.Y + height){
+        if(!im->active_ui){
+            SetHot(im, id);
+    
+            if(state == GLFW_PRESS){
+                SetActive(im, id);
+            }
+
+        }else{
+            
+            if(im->active_ui == id){
+                if (state == GLFW_RELEASE){
+                    // SetNotActive(im);
+                    
+                    result = true;
+                }
+            }
+        }
+        
+    } else {
+        if(state == GLFW_RELEASE){
+            if(im->active_ui == id){
+                SetNotActive(im);
+            }
+
+            SetNotHot(im);
+        }
+    }
+
+    color = BUTTON_NORMAL_COLOR;
+    if(im->hot_ui == id){
+        color = BUTTON_HOT_COLOR;
+    }
+
+    if(im->active_ui == id){
+        color = BUTTON_ACTIVE_COLOR;
+    }
+
+    textPos.Y = pos.Y + (height / 2.0f) - (tallest.size.Y / 2.0f);
+
+    pos.X -= BUTTON_PADDING;
+    pos.Y -= BUTTON_PADDING;
+    renderer->DrawRect(pos, width + BUTTON_PADDING * 2, height + BUTTON_PADDING * 2, color, "assets/white_texture.jpg");    
+
+    unsigned int error = glGetError();
+    Text text = {};
+    text.string = std::string(enteredValue->c_str());
+    
+    text.oneLine = true;
+
+    renderer->RenderText(text, scale, HMM_Vec3{255.0f / 255.0f, 231.0f / 255.0f, 147.0f / 255.0f}, HMM_Vec2{textPos.X, textPos.Y});
+    error = glGetError();
+    return result;
+}
+
 #define UI_H
 #endif
